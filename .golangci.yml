@@ -1,0 +1,58 @@
+version: "2"
+run:
+  modules-download-mode: readonly
+  # Include test files or not.
+  tests: false
+linters:
+  # The value can be: `standard`, `all`, `none`, or `fast`.
+  default: none
+  # See: https://golangci-lint.run/usage/linters/
+  enable:
+    - govet
+    - ineffassign 
+    - staticcheck
+    - unused
+    - canonicalheader
+    - copyloopvar
+    - dupl
+    - errname
+    - exhaustive
+    - exptostd 
+    - mnd
+    - prealloc
+    - spancheck
+    - nilnil
+    - durationcheck
+    - usestdlibvars
+    - copyloopvar
+    - bodyclose
+  # strict-er
+  disable:
+    #- contextcheck
+    - tagliatelle
+    - exhaustruct
+    - errorlint
+    - containedctx
+    - errcheck
+    - sloglint
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

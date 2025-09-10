@@ -1,0 +1,120 @@
+resource:
+  service_name: "web-api"
+  service_version: "1.2.0"
+  attributes:
+    environment: "production"
+    service.type: "web"
+    team: "platform"
+
+metrics:
+  views:
+    - instrument:
+        name: "http.server.request.duration"
+        kind: "histogram"
+      stream:
+        aggregation:
+          kind: "base2_exponential_histogram"
+          max_scale: 20
+          max_size: 160
+          no_min_max: false
+    - instrument:
+        name: "http.server.*body.size"
+        kind: "histogram"
+      stream:
+        aggregation:
+          kind: "explicit_bucket_histogram"
+          buckets: [0, 1024, 4096, 16384, 65536, 262144, 1048576]
+          no_min_max: false
+
+  tasks:
+    # HTTP server request duration - semantic convention compliant
+    - name: "http.server.request.duration"
+      description: "Duration of HTTP server requests"
+      kind: "histogram"
+      unit: "s"
+      rate: "2s"
+      count: 100
+      value: "2.0,0.05"
+      generator: "random"
+      attributes:
+        http.request.method: "GET"
+        url.scheme: "https"
+        http.response.status_code: "200"
+        http.route: "/api/users"
+        server.address: "api.example.com"
+        server.port: "443"
+
+    # HTTP server active requests - semantic convention compliant
+    - name: "http.server.active_requests"
+      description: "Number of active HTTP server requests"
+      kind: "updowncounter"
+      unit: "{request}"
+      rate: "5s"
+      count: 50
+      value: 10
+      generator: "sine"
+      attributes:
+        http.request.method: "GET"
+        url.scheme: "https"
+        server.address: "api.example.com"
+        server.port: "443"
+
+    # HTTP server request body size - semantic convention compliant
+    - name: "http.server.request.body.size"
+      description: "Size of HTTP server request bodies"
+      kind: "histogram"
+      unit: "By"
+      rate: "3s"
+      count: 80
+      value: "8192,512"
+      generator: "random"
+      attributes:
+        http.request.method: "POST"
+        url.scheme: "https"
+        http.response.status_code: "201"
+        http.route: "/api/orders"
+        server.address: "api.example.com"
+        server.port: "443"
+
+    # HTTP server response body size - semantic convention compliant
+    - name: "http.server.response.body.size"
+      description: "Size of HTTP server response bodies"
+      kind: "histogram"
+      unit: "By"
+      rate: "2s"
+      count: 100
+      value: "32768,1024"
+      generator: "random"
+      attributes:
+        http.request.method: "GET"
+        url.scheme: "https"
+        http.response.status_code: "200"
+        http.route: "/api/users"
+        server.address: "api.example.com"
+        server.port: "443"
+
+    # HTTP server error requests duration - semantic convention compliant
+    - name: "http.server.request.duration"
+      description: "Duration of HTTP server requests with errors"
+      kind: "histogram"
+      unit: "s"
+      rate: "10s"
+      count: 20
+      value: "0.5,0.1"
+      generator: "random"
+      attributes:
+        http.request.method: "POST"
+        url.scheme: "https"
+        http.response.status_code: "500"
+        http.route: "/api/orders"
+        server.address: "api.example.com"
+        server.port: "443"
+        error.type: "internal_server_error"
+
+export:
+  mode: "execute"
+  endpoint: "127.0.0.1:4317"
+  temporality: "delta"
+
+executor:
+  strategy: concurrent

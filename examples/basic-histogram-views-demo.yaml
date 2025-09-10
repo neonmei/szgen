@@ -1,0 +1,125 @@
+resource:
+  service_name: "histogram-demo"
+  service_version: "1.0.0"
+  attributes:
+    environment: "demo"
+    purpose: "histogram-views-showcase"
+
+metrics:
+  views:
+    # Exponential histogram view for latency metrics
+    - instrument:
+        name: "*.latency"
+        kind: "histogram"
+      stream:
+        aggregation:
+          kind: "base2_exponential_histogram"
+          max_scale: 20
+          max_size: 160
+          no_min_max: false
+
+    # Explicit bucket histogram view for size metrics
+    - instrument:
+        name: "*.size"
+        kind: "histogram"
+      stream:
+        aggregation:
+          kind: "explicit_bucket_histogram"
+          buckets: [0, 100, 1000, 10000, 100000, 1000000]
+          no_min_max: false
+
+    # Custom buckets for response times
+    - instrument:
+        name: "response.duration"
+        kind: "histogram"
+      stream:
+        aggregation:
+          kind: "explicit_bucket_histogram"
+          buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]
+          no_min_max: false
+
+  tasks:
+    # Request latency with exponential histogram (uses view)
+    - name: "request.latency"
+      description: "HTTP request latency with exponential histogram aggregation"
+      kind: "histogram"
+      unit: "s"
+      rate: "2s"
+      count: 100
+      value: "1.0,0.001"
+      generator: "random"
+      attributes:
+        service: "web-api"
+        endpoint: "/api/data"
+        method: "GET"
+
+    # Payload size with explicit buckets (uses view)
+    - name: "payload.size"
+      description: "Request payload size with explicit bucket aggregation"
+      kind: "histogram"
+      unit: "By"
+      rate: "3s"
+      count: 80
+      value: "50000,100"
+      generator: "random"
+      attributes:
+        service: "web-api"
+        content_type: "application/json"
+
+    # Response duration with custom buckets (uses view)
+    - name: "response.duration"
+      description: "Response processing time with custom bucket boundaries"
+      kind: "histogram"
+      unit: "s"
+      rate: "1s"
+      count: 150
+      value: "3.0,0.005"
+      generator: "random"
+      attributes:
+        service: "processor"
+        operation: "data_transform"
+
+    # Memory usage histogram without view configuration (uses default)
+    - name: "memory.usage"
+      description: "Memory usage without custom view (default aggregation)"
+      kind: "histogram"
+      unit: "By"
+      rate: "5s"
+      count: 60
+      value: 67108864.0
+      generator: "sine"
+      attributes:
+        component: "cache"
+        pool: "main"
+
+    # Database query time with exponential view
+    - name: "db.query.latency"
+      description: "Database query execution time"
+      kind: "histogram"
+      unit: "s"
+      rate: "4s"
+      count: 75
+      value: "0.5,0.001"
+      generator: "random"
+      attributes:
+        db_type: "postgresql"
+        table: "users"
+        operation: "SELECT"
+
+    # File processing size metrics
+    - name: "file.process.size"
+      description: "Size of files being processed"
+      kind: "histogram"
+      unit: "By"
+      rate: "6s"
+      count: 50
+      value: "1024.0,102400.0"
+      generator: "step"
+      attributes:
+        file_type: "csv"
+        processor: "batch_importer"
+
+export:
+  mode: "execute"
+  endpoint: "127.0.0.1:4317"
+  temporality: "delta"

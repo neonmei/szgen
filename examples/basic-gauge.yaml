@@ -1,0 +1,16 @@
+# CPU Usage Gauge Example
+# This example demonstrates a gauge metric that simulates CPU usage with a sine wave pattern
+
+metrics:
+  tasks:
+  - name: "system.cpu.utilization"
+    description: "Difference in system.cpu.time since the last measurement, divided by the elapsed time and number of logical CPUs"
+    kind: "gauge"
+    unit: "1"
+    rate: "10s"
+    count: 30
+    value: "0.15-0.85"
+    generator: "sine"
+    attributes:
+      cpu: "cpu0"
+      state: "user"

@@ -1,0 +1,5 @@
+metrics:
+  tasks:
+  - name: http.server.request.total
+    kind: counter
+    count: 5

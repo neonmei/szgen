@@ -1,0 +1,142 @@
+resource:
+  service_name: "message-processor"
+  service_version: "1.5.0"
+  attributes:
+    environment: "production"
+    service.type: "messaging"
+    team: "platform"
+
+metrics:
+  views:
+    - instrument:
+        name: "messaging.*.duration"
+        kind: "histogram"
+      stream:
+        aggregation:
+          kind: "base2_exponential_histogram"
+          max_scale: 20
+          max_size: 160
+          no_min_max: false
+
+  tasks:
+    # Messaging client operation duration - Kafka producer
+    - name: "messaging.client.operation.duration"
+      description: "Duration of messaging operation initiated by a producer or consumer client"
+      kind: "histogram"
+      unit: "s"
+      rate: "2s"
+      count: 100
+      value: "0.1,0.001"
+      generator: "random"
+      attributes:
+        messaging.system: "kafka"
+        messaging.operation.name: "publish"
+        messaging.destination.name: "order-events"
+        messaging.destination.partition.id: "0"
+        server.address: "kafka.example.com"
+        server.port: "9092"
+
+    # Messaging client operation duration - Kafka consumer
+    - name: "messaging.client.operation.duration"
+      description: "Duration of messaging operation initiated by a producer or consumer client"
+      kind: "histogram"
+      unit: "s"
+      rate: "3s"
+      count: 80
+      value: "0.2,0.005"
+      generator: "random"
+      attributes:
+        messaging.system: "kafka"
+        messaging.operation.name: "receive"
+        messaging.destination.name: "order-events"
+        messaging.consumer.group.name: "order-processor-group"
+        server.address: "kafka.example.com"
+        server.port: "9092"
+
+    # Messages sent by producer
+    - name: "messaging.client.sent.messages"
+      description: "Number of messages producer attempted to send to the broker"
+      kind: "counter"
+      unit: "{message}"
+      rate: "5s"
+      count: 60
+      value: "50,5"
+      generator: "random"
+      attributes:
+        messaging.system: "kafka"
+        messaging.operation.name: "publish"
+        messaging.destination.name: "order-events"
+        messaging.destination.partition.id: "0"
+        server.address: "kafka.example.com"
+        server.port: "9092"
+
+    # Messages consumed by consumer
+    - name: "messaging.client.consumed.messages"
+      description: "Number of messages that were delivered to the application"
+      kind: "counter"
+      unit: "{message}"
+      rate: "5s"
+      count: 60
+      value: "30,3"
+      generator: "random"
+      attributes:
+        messaging.system: "kafka"
+        messaging.operation.name: "receive"
+        messaging.destination.name: "order-events"
+        messaging.consumer.group.name: "order-processor-group"
+        server.address: "kafka.example.com"
+        server.port: "9092"
+
+    # Message processing duration
+    - name: "messaging.process.duration"
+      description: "Duration of processing operation"
+      kind: "histogram"
+      unit: "s"
+      rate: "3s"
+      count: 80
+      value: "1.0,0.01"
+      generator: "random"
+      attributes:
+        messaging.system: "kafka"
+        messaging.operation.name: "process"
+        messaging.destination.name: "order-events"
+        messaging.consumer.group.name: "order-processor-group"
+
+    # RabbitMQ messaging operations
+    - name: "messaging.client.operation.duration"
+      description: "Duration of messaging operation initiated by a producer or consumer client"
+      kind: "histogram"
+      unit: "s"
+      rate: "4s"
+      count: 70
+      value: "0.05,0.002"
+      generator: "random"
+      attributes:
+        messaging.system: "rabbitmq"
+        messaging.operation.name: "publish"
+        messaging.destination.name: "notifications"
+        messaging.rabbitmq.destination.routing_key: "email.notification"
+        server.address: "rabbitmq.example.com"
+        server.port: "5672"
+
+    # RabbitMQ message consumption
+    - name: "messaging.client.consumed.messages"
+      description: "Number of messages that were delivered to the application"
+      kind: "counter"
+      unit: "{message}"
+      rate: "4s"
+      count: 70
+      value: "20,1"
+      generator: "random"
+      attributes:
+        messaging.system: "rabbitmq"
+        messaging.operation.name: "receive"
+        messaging.destination.name: "notifications"
+        messaging.consumer.group.name: "notification-service"
+        server.address: "rabbitmq.example.com"
+        server.port: "5672"
+
+export:
+  mode: "execute"
+  endpoint: "127.0.0.1:4317"
+  temporality: "delta"

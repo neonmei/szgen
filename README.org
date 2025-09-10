@@ -1,0 +1,208 @@
+#+TITLE: szgen - Synthetic Telemetry Generator
+#+AUTHOR: neonmei
+
+* Overview
+
+[[./docs/sz.png]]
+
+*szgen* is a basic CLI tool for generating synthetic OpenTelemetry data inspired by tools like ~telemetrygen~ or ~dogshell~. The motivation is that I needed to quickly model different metric generation scenarios and test them with different OTel collector setups (mostly for component development), so this started as mini script and eventually it got a little bigger.
+
+At the moment this CLI only supports metrics data. It supports =Counter=, =Gauge=, =Histogram= (+Exponential Histogram), and =UpDownCounter= metric types with configurable value generators. Eventually I might add other signal types.
+
+* Installation
+
+** Build from Source
+
+Run =go install= or clone and =just install=
+#+begin_src bash
+
+git clone https://github.com/neonmei/szgen.git
+cd szgen
+just install
+#+end_src
+
+* Quick Start
+
+** Basic Counter Example
+
+Generate a simple counter by executing an imperative or one-off command. Shorthand: =szgen m c [flags...]=
+
+#+begin_src bash
+szgen metrics counter --name http_requests_total --rate 1s --count 10 --value 1
+#+end_src
+
+** Using Configuration File
+
+Run a predefined routine from YAML. Shorthand: =szgen r [flags...]=
+#+begin_src bash
+szgen run --config examples/basic-counter.yaml
+#+end_src
+
+* Usage
+
+** Command Structure
+
+#+begin_src
+szgen [global-flags] <telemetry signal> [command-flags and/or subcommands]
+#+end_src
+
+** Global Flags
+
+*** OTLP Export Configuration
+- =--otlp-endpoint=: OTLP gRPC endpoint (default: ~127.0.0.1:4317~)
+- =--otlp-insecure=: Enable insecure gRPC connection (default: ~true~)
+- =--otlp-interval=: Time between exports or "interval" (default: ~1s~)
+
+*** Export Modes
+- =--export-mode=: Export mode - ~execute~, ~save~ (to a file), or ~execute-and-save~ (default: "execute")
+- =--export-file=: Output file for save mode (default: ~metrics.json~)
+- =--export-temporality=: Temporality - ~delta~ or ~cumulative~ (default: ~delta~)
+
+*** Resource Configuration
+- =--service-name=: Service name for OpenTelemetry resource (default: ~szgen~)
+- =--service-version=: Service version for OpenTelemetry resource (default: ~0.1.0~)
+- =--resource-attributes=: Additional resource attributes in ~key=value,key2=value2~ format
+
+*** Execution Configuration
+- =--executor, -e=: Execution strategy - ~serial~ or ~concurrent~ (default: ~serial~)
+- =--max-concurrency, -j=: Maximum concurrent tasks for concurrent executor (0 = unlimited)
+
+*** Configuration
+- =--config=: YAML configuration file path
+
+** Metric Commands
+
+Each type is defined as a sub-command like so:
+
+*** Counter
+#+begin_src bash
+szgen metrics counter --name <name> --rate <duration> --count <number> [flags]
+#+end_src
+
+*** Gauge
+#+begin_src bash
+szgen metrics gauge --name <name> --rate <duration> --count <number> [flags]
+#+end_src
+
+*** Histogram
+#+begin_src bash
+szgen metrics histogram --name <name> --rate <duration> --count <number> [flags]
+#+end_src
+
+*** UpDownCounter
+#+begin_src bash
+szgen metrics updowncounter --name <name> --rate <duration> --count <number> [flags]
+#+end_src
+
+** Common Metric Flags
+
+- =--type=: Value type - int64 or float64 (default: "float64")
+- =--generator=: Strategy to use when generating values
+- =--value=: Generator configuration value
+- =--description=: Metric description
+- =--unit=: Metric unit
+- =--attributes=: Comma-separated key=value pairs
+
+** Value Generators
+
+These can be configured with `--value` using a single or more optional values (as in the case of `sine` generator).
+
+
+| Generator | Description                    | Value Format                                            | Example                        |
+|-----------+--------------------------------+---------------------------------------------------------+--------------------------------|
+| constant  | Fixed value                    | Single number                                           | =--value 42=                     |
+| random    | Random values                  | ~max~ or ~max,min~                                          | =--value 100,1=                  |
+| step      | Increasing or decreasing value | ~initial,step~ (positive=increasing, negative=decreasing) | =--value 10,2= or =--value 100,-5= |
+| sine      | Sine wave pattern              | ~amplitude,b,vertical_shift,horizontal_shift~             | =--value 50,10,100,0=            |
+| sequence  | Predefined sequence of numbers | Comma-separated values                                  | =--value 1,2,3,5,8=              |
+
+** Execution Modes
+
+*szgen* supports two execution strategies for running multiple metric generation tasks:
+
+*** Serial Execution (default)
+Tasks execute sequentially, one after another. This is the default mode and provides predictable execution order.
+
+#+begin_src bash
+szgen run --config config.yaml --executor serial
+#+end_src
+
+*** Concurrent Execution
+
+All signal tasks execute concurrently using goroutines. By default concurrency is unbounded but can be optionally bounded to a specific concurrency level. Failed tasks are logged and stop execution.
+
+#+begin_src bash
+szgen run --config config.yaml --executor concurrent --max-concurrency 4
+#+end_src
+
+* Configuration File Format
+
+** Minimal example
+
+For counting =1= each second (constant generator), five times :
+
+#+begin_src yaml
+metrics:
+  tasks:
+  - name: http.server.request.total
+    kind: counter
+    count: 5
+#+end_src
+
+** Basic Structure
+
+#+begin_src yaml
+resource:
+  service_name: "my-service"
+  service_version: "1.0.0"
+  attributes:
+    environment: "testing"
+
+metrics:
+  views:
+    - instrument:
+        name: "*"
+        kind: "histogram"
+      stream:
+        aggregation:
+          kind: "base2_exponential_histogram"
+          max_scale: 20
+  tasks:
+    - name: "http_requests_total"
+      kind: "counter"
+      type: "int64"
+      rate: "1s"
+      count: 100
+      value: "1"
+      generator: "constant"
+      attributes:
+        service: "web-server"
+        method: "GET"
+
+export:
+  mode: "execute"
+  endpoint: "127.0.0.1:4317"
+  temporality: "delta"
+
+executor:
+  strategy: "concurrent"
+  params:
+    max_concurrency: 4
+#+end_src
+
+
+* Examples
+
+The =examples/= directory contains various configuration examples:
+
+- =basic-counter.yaml=: Simple counter metric
+- =basic-gauge.yaml=: Gauge metric example
+- =basic-histogram-views-demo.yaml=: Histogram with exponential buckets
+- =basic-file-export.yaml=: File export example
+- =basic-primes.yaml=: Sequence generator example (emits a gauge sequence of primes)
+- =minimal-counter.yaml=: Minimal configuration example to show how much is optional in config files
+- =system-monitoring.yaml=: System monitoring metrics
+- =http-service-monitoring.yaml=: HTTP service metrics
+- =database-monitoring.yaml=: Database performance metrics
+- =messaging-monitoring.yaml=: Message queue metrics
+

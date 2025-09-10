@@ -1,0 +1,184 @@
+resource:
+  service_name: "system-monitor"
+  service_version: "1.0.0"
+  attributes:
+    environment: "production"
+    host.name: "web-server-01"
+    host.arch: "amd64"
+    os.type: "linux"
+
+metrics:
+  views:
+    - instrument:
+        name: "system.cpu.time"
+        kind: "counter"
+      stream:
+        aggregation:
+          kind: "sum"
+    - instrument:
+        name: "system.*.usage"
+        kind: "gauge"
+      stream:
+        aggregation:
+          kind: "last_value"
+
+  tasks:
+    # System CPU time metrics
+    - name: "system.cpu.time"
+      description: "Seconds each logical CPU spent on each mode"
+      kind: "counter"
+      unit: "s"
+      rate: "5s"
+      count: 60
+      value: "2.0,0.1"
+      generator: "random"
+      attributes:
+        cpu: "cpu0"
+        state: "user"
+
+    - name: "system.cpu.time"
+      description: "Seconds each logical CPU spent on each mode"
+      kind: "counter"
+      unit: "s"
+      rate: "5s"
+      count: 60
+      value: "1.0,0.05"
+      generator: "random"
+      attributes:
+        cpu: "cpu0"
+        state: "system"
+
+    - name: "system.cpu.time"
+      description: "Seconds each logical CPU spent on each mode"
+      kind: "counter"
+      unit: "s"
+      rate: "5s"
+      count: 60
+      value: "4.0,2.0"
+      generator: "random"
+      attributes:
+        cpu: "cpu0"
+        state: "idle"
+
+    # System CPU utilization
+    - name: "system.cpu.utilization"
+      description: "Difference in system.cpu.time since the last measurement, divided by the elapsed time and number of logical CPUs"
+      kind: "gauge"
+      unit: "1"
+      rate: "10s"
+      count: 30
+      value: "0.85,0.15"
+      generator: "sine"
+      attributes:
+        cpu: "cpu0"
+        state: "user"
+
+    # System memory usage
+    - name: "system.memory.usage"
+      description: "Memory usage"
+      kind: "gauge"
+      unit: "By"
+      rate: "15s"
+      count: 40
+      value: "8589934592,134217728"
+      generator: "step"
+      attributes:
+        state: "used"
+
+    - name: "system.memory.usage"
+      description: "Memory usage"
+      kind: "gauge"
+      unit: "By"
+      rate: "15s"
+      count: 40
+      value: "4294967296,-67108864"
+      generator: "step"
+      attributes:
+        state: "free"
+
+    # System memory utilization
+    - name: "system.memory.utilization"
+      description: "Fraction of memory used"
+      kind: "gauge"
+      unit: "1"
+      rate: "15s"
+      count: 40
+      value: "0.9,0.3"
+      generator: "sine"
+      attributes:
+        state: "used"
+
+    # System disk I/O operations
+    - name: "system.disk.operations"
+      description: "Disk operations count"
+      kind: "counter"
+      unit: "{operation}"
+      rate: "5s"
+      count: 60
+      value: "100,10"
+      generator: "random"
+      attributes:
+        device: "sda"
+        direction: "read"
+
+    - name: "system.disk.operations"
+      description: "Disk operations count"
+      kind: "counter"
+      unit: "{operation}"
+      rate: "5s"
+      count: 60
+      value: "50,5"
+      generator: "random"
+      attributes:
+        device: "sda"
+        direction: "write"
+
+    # System disk I/O bytes
+    - name: "system.disk.io"
+      description: "Disk bytes transferred"
+      kind: "counter"
+      unit: "By"
+      rate: "5s"
+      count: 60
+      value: "1048576,4096"
+      generator: "random"
+      attributes:
+        device: "sda"
+        direction: "read"
+
+    # System filesystem usage
+    - name: "system.filesystem.usage"
+      description: "Filesystem bytes used"
+      kind: "gauge"
+      unit: "By"
+      rate: "30s"
+      count: 20
+      value: "85899345920,1073741824"
+      generator: "step"
+      attributes:
+        device: "/dev/sda1"
+        state: "used"
+        type: "ext4"
+        mode: "rw"
+        mountpoint: "/"
+
+    # System filesystem utilization
+    - name: "system.filesystem.utilization"
+      description: "Fraction of filesystem used"
+      kind: "gauge"
+      unit: "1"
+      rate: "30s"
+      count: 20
+      value: "0.8,0.02"
+      generator: "step"
+      attributes:
+        device: "/dev/sda1"
+        state: "used"
+        type: "ext4"
+        mode: "rw"
+        mountpoint: "/"
+
+export:
+  mode: "execute"
+  endpoint: "127.0.0.1:4317"
+  temporality: "delta"

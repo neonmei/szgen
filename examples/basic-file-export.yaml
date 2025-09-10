@@ -1,0 +1,21 @@
+# File Export Example
+# This example demonstrates exporting metrics to a file instead of OTLP endpoint
+
+metrics:
+  tasks:
+  - name: szgen.counter
+    kind: counter
+    description: "Test metric for file export"
+    unit: "operations"
+    rate: 1s
+    count: 10
+    generator: constant
+    value: "1"
+    attributes:
+      test: "true"
+      environment: "development"
+
+export:
+  mode: save
+  file: "/tmp/szgen-metrics.json"
+  temporality: cumulative

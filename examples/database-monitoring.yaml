@@ -1,0 +1,120 @@
+resource:
+  service_name: "order-service"
+  service_version: "2.1.0"
+  attributes:
+    environment: "production"
+    service.type: "database-client"
+    team: "backend"
+
+metrics:
+  views:
+    - instrument:
+        name: "db.client.operation.duration"
+        kind: "histogram"
+      stream:
+        aggregation:
+          kind: "base2_exponential_histogram"
+          max_scale: 20
+          max_size: 160
+          no_min_max: false
+
+  tasks:
+    # Database operation duration - PostgreSQL SELECT operations
+    - name: "db.client.operation.duration"
+      description: "Duration of database client operations"
+      kind: "histogram"
+      unit: "s"
+      rate: "3s"
+      count: 80
+      value: "0.5,0.001"
+      generator: "random"
+      attributes:
+        db.system: "postgresql"
+        db.collection.name: "orders"
+        db.operation.name: "SELECT"
+        server.address: "postgres.example.com"
+        server.port: "5432"
+
+    # Database operation duration - PostgreSQL INSERT operations
+    - name: "db.client.operation.duration"
+      description: "Duration of database client operations"
+      kind: "histogram"
+      unit: "s"
+      rate: "5s"
+      count: 60
+      value: "0.2,0.005"
+      generator: "random"
+      attributes:
+        db.system: "postgresql"
+        db.collection.name: "orders"
+        db.operation.name: "INSERT"
+        server.address: "postgres.example.com"
+        server.port: "5432"
+
+    # Database operation duration - Redis cache operations
+    - name: "db.client.operation.duration"
+      description: "Duration of database client operations"
+      kind: "histogram"
+      unit: "s"
+      rate: "2s"
+      count: 120
+      value: "0.01,0.0001"
+      generator: "random"
+      attributes:
+        db.system: "redis"
+        db.operation.name: "GET"
+        server.address: "redis.example.com"
+        server.port: "6379"
+
+    # Database returned rows metric
+    - name: "db.client.response.returned_rows"
+      description: "The number of rows returned by database operations"
+      kind: "histogram"
+      unit: "{row}"
+      rate: "3s"
+      count: 80
+      value: "1000,1"
+      generator: "random"
+      attributes:
+        db.system: "postgresql"
+        db.collection.name: "orders"
+        db.operation.name: "SELECT"
+        server.address: "postgres.example.com"
+        server.port: "5432"
+
+    # Database connection pool - active connections
+    - name: "db.client.connection.count"
+      description: "The number of connections that are currently in state described by the state attribute"
+      kind: "updowncounter"
+      unit: "{connection}"
+      rate: "10s"
+      count: 30
+      value: 5
+      generator: "sine"
+      attributes:
+        db.system: "postgresql"
+        state: "active"
+        pool.name: "main-pool"
+        server.address: "postgres.example.com"
+        server.port: "5432"
+
+    # Database connection pool - idle connections
+    - name: "db.client.connection.count"
+      description: "The number of connections that are currently in state described by the state attribute"
+      kind: "updowncounter"
+      unit: "{connection}"
+      rate: "10s"
+      count: 30
+      value: "15,-2"
+      generator: "step"
+      attributes:
+        db.system: "postgresql"
+        state: "idle"
+        pool.name: "main-pool"
+        server.address: "postgres.example.com"
+        server.port: "5432"
+
+export:
+  mode: "execute"
+  endpoint: "127.0.0.1:4317"
+  temporality: "delta"

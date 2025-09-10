@@ -1,0 +1,13 @@
+metrics:
+  tasks:
+  - name: http.server.request.total
+    kind: counter
+    description: "Total number of HTTP requests received"
+    unit: "requests"
+    rate: 1s
+    count: 5
+    generator: constant
+    value: "1"
+    attributes:
+      service: "web-server"
+      environment: "production"
