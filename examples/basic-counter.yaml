@@ -11,3 +11,12 @@ metrics:
     attributes:
       service: "web-server"
       environment: "production"
+
+opentelemetry:
+  resource:
+    attributes:
+    - name: service.name
+      value: szgen
+    - name: service.version
+      value: "0.1.0"
+      type: string

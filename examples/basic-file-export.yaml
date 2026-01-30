@@ -1,6 +1,16 @@
-# File Export Example
-# This example demonstrates exporting metrics to a file instead of OTLP endpoint
-
+opentelemetry:
+  meter_provider:
+    readers:
+      - periodic:
+          interval: 1000
+          timeout: 1000
+          exporter:
+            console: {}
+            # Not stable yet, see: https://github.com/open-telemetry/opentelemetry-go/issues/5408
+            # otlp_file/development:
+            #   output_stream: "file:///tmp/szgen-metrics.json"
+            #   temporality_preference: "cumulative"
+            #   default_histogram_aggregation: base2_exponential_bucket_histogram
 metrics:
   tasks:
   - name: szgen.counter
@@ -15,7 +25,3 @@ metrics:
       test: "true"
       environment: "development"
 
-export:
-  mode: save
-  file: "/tmp/szgen-metrics.json"
-  temporality: cumulative

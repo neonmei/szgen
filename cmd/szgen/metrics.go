@@ -37,14 +37,9 @@ func init() {
 }
 
 func runMetricCommand(cmd *cobra.Command, metricType string) error {
-	exportCfg, err := parseExportConfigFromCli(cmd)
+	cfg, err := config.NewConfig(config.WithDefaultConfig(), config.WithOtelConfigFile())
 	if err != nil {
-		return fmt.Errorf("failed to build export config: %w", err)
-	}
-
-	resourceCfg, err := parseResourceConfigFromCli(cmd)
-	if err != nil {
-		return fmt.Errorf("failed to build resource config: %w", err)
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 
 	metricCfg, err := buildMetricConfig(cmd, metricType)
@@ -52,15 +47,14 @@ func runMetricCommand(cmd *cobra.Command, metricType string) error {
 		return fmt.Errorf("failed to build metric config: %w", err)
 	}
 
-	ctx, cancelFn := setupContext(context.Background())
+	ctx, cancelFn := setupSignalHandler(context.Background())
 	defer cancelFn()
 
-	cfg := config.Config{
-		Metrics: &config.MetricsConfig{
-			Tasks: []config.MetricTask{*metricCfg},
-		},
-		Export:   *exportCfg,
-		Resource: *resourceCfg,
+	// Append CLI task to config
+	cfg.Metrics.Tasks = append(cfg.Metrics.Tasks, *metricCfg)
+
+	if err := cfg.Validate(); err != nil {
+		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
 	task, err := metrictask.New(ctx, *metricCfg)
@@ -68,73 +62,13 @@ func runMetricCommand(cmd *cobra.Command, metricType string) error {
 		return fmt.Errorf("failed to create task: %w", err)
 	}
 
-	sdk, err := otel.Start(cfg)
+	sdk, err := otel.NewSDK(cfg)
 	if err != nil {
-		return fmt.Errorf("failed to initialize OpenTelemetry SDK: %w", err)
-	}
-	defer sdk.Shutdown(ctx)
-
-	executorConfig, err := parseExecutorConfigFromCli(cmd)
-	if err != nil {
-		return fmt.Errorf("failed to parse executor config: %w", err)
+		return fmt.Errorf("failed to create sdk: %w", err)
 	}
 
-	exec, err := executors.New(*executorConfig)
-	if err != nil {
-		return fmt.Errorf("failed to create executor: %w", err)
-	}
-
-	if err := exec.Execute(ctx, []runner.Task{task}); err != nil {
-		return err
-	}
-
-	slog.Info("Flushing metrics")
-	flushCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := sdk.ForceFlush(flushCtx); err != nil {
-		slog.Warn("Failed to flush metrics", "error", err)
-	}
-
-	return nil
-}
-
-func runMetricCommandWithViews(cmd *cobra.Command, metricType string, views []config.MetricView) error {
-	exportCfg, err := parseExportConfigFromCli(cmd)
-	if err != nil {
-		return fmt.Errorf("failed to build export config: %w", err)
-	}
-
-	resourceCfg, err := parseResourceConfigFromCli(cmd)
-	if err != nil {
-		return fmt.Errorf("failed to build resource config: %w", err)
-	}
-
-	metricCfg, err := buildMetricConfig(cmd, metricType)
-	if err != nil {
-		return fmt.Errorf("failed to build metric config: %w", err)
-	}
-
-	ctx, cancelFn := setupContext(context.Background())
-	defer cancelFn()
-
-	cfg := config.Config{
-		Metrics: &config.MetricsConfig{
-			Tasks: []config.MetricTask{*metricCfg},
-			Views: views,
-		},
-		Export:   *exportCfg,
-		Resource: *resourceCfg,
-	}
-
-	task, err := metrictask.New(ctx, *metricCfg)
-	if err != nil {
-		return fmt.Errorf("failed to create task: %w", err)
-	}
-
-	sdk, err := otel.Start(cfg)
-	if err != nil {
-		return fmt.Errorf("failed to initialize OpenTelemetry SDK: %w", err)
+	if err := sdk.Start(); err != nil {
+		return fmt.Errorf("failed to start sdk: %w", err)
 	}
 	defer sdk.Shutdown(ctx)
 

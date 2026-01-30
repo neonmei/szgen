@@ -1,0 +1,38 @@
+opentelemetry:
+  meter_provider:
+    readers:
+    - periodic:
+        interval: 1000
+        timeout: 1000
+        exporter:
+          otlp_grpc:
+            endpoint: http://127.0.0.1:4317
+            encoding: protobuf
+            compression: gzip
+            insecure: true
+            timeout: 1000
+            temporality_preference: cumulative
+            default_histogram_aggregation: "base2_exponential_bucket_histogram"
+    views:
+    - selector:
+        instrument_type: histogram
+      stream:
+        aggregation:
+          base2_exponential_bucket_histogram:
+            max_size: 100
+            max_scale: 10
+
+metrics:
+  tasks:
+  - name: "http.server.request.duration"
+    description: "HTTP request duration"
+    kind: "histogram"
+    unit: "s"
+    count: 3
+    value: "1,2,3"
+    generator: sequence
+    attributes:
+      service: "web-api"
+      endpoint: "/api/data"
+      method: "GET"
+

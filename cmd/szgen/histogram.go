@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log/slog"
 
-	"github.com/neonmei/szgen/internal/config"
 	"github.com/neonmei/szgen/internal/consts"
 	"github.com/spf13/cobra"
 )
@@ -33,67 +31,13 @@ func init() {
 }
 
 func runHistogram(cmd *cobra.Command, _ []string) error {
-	views, err := parseHistogramViews(cmd)
-	if err != nil {
-		return err
-	}
-
-	return runMetricCommandWithViews(cmd, consts.MetricTypeHistogram, views)
-}
-
-func parseHistogramViews(cmd *cobra.Command) ([]config.MetricView, error) {
 	explicitBuckets, _ := cmd.Flags().GetFloat64Slice(histogramBuckets)
 	expoMaxScale, _ := cmd.Flags().GetInt(expoMaxScale)
 	expoMaxSize, _ := cmd.Flags().GetInt(expoMaxSize)
-	expoNoMinMax, _ := cmd.Flags().GetBool(expoNoMinMax)
 
-	hasExplicitBuckets := len(explicitBuckets) > 0
-	hasExpoParams := expoMaxScale > 0 || expoMaxSize > 0
-
-	if !hasExplicitBuckets && !hasExpoParams {
-		return nil, nil
+	if len(explicitBuckets) > 0 || expoMaxScale > 0 || expoMaxSize > 0 {
+		return fmt.Errorf("metric views configuration via CLI is deprecated, please use --config with otelconf configuration")
 	}
 
-	if hasExplicitBuckets && hasExpoParams {
-		return nil, fmt.Errorf("for oneshot commands you can only configure either explicit buckets OR exponential histogram")
-	}
-
-	if hasExplicitBuckets {
-		bucketView := config.NewMetricView(
-			config.WithInstrumentKind(consts.InstrumentKindHistogram),
-			config.WithExplicitBuckets(explicitBuckets),
-		)
-
-		if err := bucketView.Validate(); err != nil {
-			return nil, fmt.Errorf("invalid explicit bucket histogram view: %w", err)
-		}
-
-		slog.Info("Configured explicit buckets view from CLI", "boundaries", explicitBuckets)
-		return []config.MetricView{*bucketView}, nil
-	}
-
-	// Set defaults for exponential histogram if any parameter is missing
-	if expoMaxScale == 0 {
-		expoMaxScale = 20
-	}
-	if expoMaxSize == 0 {
-		expoMaxSize = 160
-	}
-
-	expoView := config.NewMetricView(
-		config.WithInstrumentKind(consts.InstrumentKindHistogram),
-		config.WithExponentialHistogram(expoMaxScale, expoMaxSize, expoNoMinMax),
-	)
-
-	if err := expoView.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid exponential histogram view: %w", err)
-	}
-
-	slog.Info("Configured exponential histogram view from CLI",
-		"maxSize", expoView.Stream.Aggregation.MaxSize,
-		"maxScale", expoView.Stream.Aggregation.MaxScale,
-		"noMinMax", expoView.Stream.Aggregation.NoMinMax,
-	)
-
-	return []config.MetricView{*expoView}, nil
+	return runMetricCommand(cmd, consts.MetricTypeHistogram)
 }

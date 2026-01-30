@@ -47,28 +47,9 @@ szgen [global-flags] <telemetry signal> [command-flags and/or subcommands]
 #+end_src
 
 ** Global Flags
-
-*** OTLP Export Configuration
-- =--otlp-endpoint=: OTLP gRPC endpoint (default: ~127.0.0.1:4317~)
-- =--otlp-insecure=: Enable insecure gRPC connection (default: ~true~)
-- =--otlp-interval=: Time between exports or "interval" (default: ~1s~)
-
-*** Export Modes
-- =--export-mode=: Export mode - ~execute~, ~save~ (to a file), or ~execute-and-save~ (default: "execute")
-- =--export-file=: Output file for save mode (default: ~metrics.json~)
-- =--export-temporality=: Temporality - ~delta~ or ~cumulative~ (default: ~delta~)
-
-*** Resource Configuration
-- =--service-name=: Service name for OpenTelemetry resource (default: ~szgen~)
-- =--service-version=: Service version for OpenTelemetry resource (default: ~0.1.0~)
-- =--resource-attributes=: Additional resource attributes in ~key=value,key2=value2~ format
-
 *** Execution Configuration
 - =--executor, -e=: Execution strategy - ~serial~ or ~concurrent~ (default: ~serial~)
 - =--max-concurrency, -j=: Maximum concurrent tasks for concurrent executor (0 = unlimited)
-
-*** Configuration
-- =--config=: YAML configuration file path
 
 ** Metric Commands
 
@@ -152,21 +133,18 @@ metrics:
 ** Basic Structure
 
 #+begin_src yaml
-resource:
-  service_name: "my-service"
-  service_version: "1.0.0"
-  attributes:
-    environment: "testing"
+opentelemetry:
+  resource:
+    attributes:
+      - name: service.name
+        value: "my-service"
+      - name: service.version
+        value: "1.0.0"
+        type: string
+      - name: environment
+        value: "testing"
 
 metrics:
-  views:
-    - instrument:
-        name: "*"
-        kind: "histogram"
-      stream:
-        aggregation:
-          kind: "base2_exponential_histogram"
-          max_scale: 20
   tasks:
     - name: "http_requests_total"
       kind: "counter"
@@ -178,11 +156,6 @@ metrics:
       attributes:
         service: "web-server"
         method: "GET"
-
-export:
-  mode: "execute"
-  endpoint: "127.0.0.1:4317"
-  temporality: "delta"
 
 executor:
   strategy: "concurrent"

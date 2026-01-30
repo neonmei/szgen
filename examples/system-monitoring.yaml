@@ -1,27 +1,35 @@
-resource:
-  service_name: "system-monitor"
-  service_version: "1.0.0"
-  attributes:
-    environment: "production"
-    host.name: "web-server-01"
-    host.arch: "amd64"
-    os.type: "linux"
+opentelemetry:
+  resource:
+    attributes:
+      - name: service.name
+        value: "system-monitor"
+      - name: service.version
+        value: "1.0.0"
+      - name: environment
+        value: "production"
+      - name: host.name
+        value: "web-server-01"
+      - name: host.arch
+        value: "amd64"
+      - name: os.type
+        value: "linux"
+
+  meter_provider:
+    views:
+      - selector:
+          instrument_name: "system.cpu.time"
+          instrument_type: "counter"
+        stream:
+          aggregation:
+            sum: {}
+      - selector:
+          instrument_name: "system.*.usage"
+          instrument_type: "gauge"
+        stream:
+          aggregation:
+            last_value: {}
 
 metrics:
-  views:
-    - instrument:
-        name: "system.cpu.time"
-        kind: "counter"
-      stream:
-        aggregation:
-          kind: "sum"
-    - instrument:
-        name: "system.*.usage"
-        kind: "gauge"
-      stream:
-        aggregation:
-          kind: "last_value"
-
   tasks:
     # System CPU time metrics
     - name: "system.cpu.time"
@@ -178,7 +186,3 @@ metrics:
         mode: "rw"
         mountpoint: "/"
 
-export:
-  mode: "execute"
-  endpoint: "127.0.0.1:4317"
-  temporality: "delta"

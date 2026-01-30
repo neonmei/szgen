@@ -56,7 +56,7 @@ func buildMetricConfig(cmd *cobra.Command, metricType string) (*config.MetricTas
 	return mc, nil
 }
 
-func setupContext(ctx context.Context) (context.Context, context.CancelFunc) {
+func setupSignalHandler(ctx context.Context) (context.Context, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(ctx)
 
 	sigCh := make(chan os.Signal, 1)

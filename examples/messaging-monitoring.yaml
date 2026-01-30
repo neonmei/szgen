@@ -1,23 +1,30 @@
-resource:
-  service_name: "message-processor"
-  service_version: "1.5.0"
-  attributes:
-    environment: "production"
-    service.type: "messaging"
-    team: "platform"
+opentelemetry:
+  resource:
+    attributes:
+      - name: service.name
+        value: "message-processor"
+      - name: service.version
+        value: "1.5.0"
+      - name: environment
+        value: "production"
+      - name: service.type
+        value: "messaging"
+      - name: team
+        value: "platform"
+
+  meter_provider:
+    views:
+      - selector:
+          instrument_name: "messaging.*.duration"
+          instrument_type: "histogram"
+        stream:
+          aggregation:
+            base2_exponential_bucket_histogram:
+              max_scale: 20
+              max_size: 160
+              record_min_max: true
 
 metrics:
-  views:
-    - instrument:
-        name: "messaging.*.duration"
-        kind: "histogram"
-      stream:
-        aggregation:
-          kind: "base2_exponential_histogram"
-          max_scale: 20
-          max_size: 160
-          no_min_max: false
-
   tasks:
     # Messaging client operation duration - Kafka producer
     - name: "messaging.client.operation.duration"
@@ -136,7 +143,3 @@ metrics:
         server.address: "rabbitmq.example.com"
         server.port: "5672"
 
-export:
-  mode: "execute"
-  endpoint: "127.0.0.1:4317"
-  temporality: "delta"

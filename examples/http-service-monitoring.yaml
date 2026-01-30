@@ -1,31 +1,38 @@
-resource:
-  service_name: "web-api"
-  service_version: "1.2.0"
-  attributes:
-    environment: "production"
-    service.type: "web"
-    team: "platform"
+opentelemetry:
+  resource:
+    attributes:
+      - name: service.name
+        value: "web-api"
+      - name: service.version
+        value: "1.2.0"
+      - name: environment
+        value: "production"
+      - name: service.type
+        value: "web"
+      - name: team
+        value: "platform"
+
+  meter_provider:
+    views:
+      - selector:
+          instrument_name: "http.server.request.duration"
+          instrument_type: "histogram"
+        stream:
+          aggregation:
+            base2_exponential_bucket_histogram:
+              max_scale: 20
+              max_size: 160
+              record_min_max: true
+      - selector:
+          instrument_name: "http.server.*body.size"
+          instrument_type: "histogram"
+        stream:
+          aggregation:
+            explicit_bucket_histogram:
+              boundaries: [0, 1024, 4096, 16384, 65536, 262144, 1048576]
+              record_min_max: true
 
 metrics:
-  views:
-    - instrument:
-        name: "http.server.request.duration"
-        kind: "histogram"
-      stream:
-        aggregation:
-          kind: "base2_exponential_histogram"
-          max_scale: 20
-          max_size: 160
-          no_min_max: false
-    - instrument:
-        name: "http.server.*body.size"
-        kind: "histogram"
-      stream:
-        aggregation:
-          kind: "explicit_bucket_histogram"
-          buckets: [0, 1024, 4096, 16384, 65536, 262144, 1048576]
-          no_min_max: false
-
   tasks:
     # HTTP server request duration - semantic convention compliant
     - name: "http.server.request.duration"
@@ -111,10 +118,6 @@ metrics:
         server.port: "443"
         error.type: "internal_server_error"
 
-export:
-  mode: "execute"
-  endpoint: "127.0.0.1:4317"
-  temporality: "delta"
 
 executor:
   strategy: concurrent

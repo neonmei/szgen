@@ -3,85 +3,72 @@ package otel
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/neonmei/szgen/internal/config"
-	"github.com/neonmei/szgen/internal/consts"
-	"github.com/neonmei/szgen/internal/exporter"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
-	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/contrib/otelconf"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/log/global"
+	"gopkg.in/yaml.v3"
 )
 
-// this is temporary until config fully lands
-// see: https://opentelemetry.io/docs/specs/otel/configuration/sdk/
-type otelSDK struct {
-	meterProvider *sdkmetric.MeterProvider
+type SDK struct {
+	cfg *otelconf.OpenTelemetryConfiguration
+	sdk *otelconf.SDK
 }
 
-func Start(cfg config.Config) (*otelSDK, error) {
-	e, err := newExporter(cfg.Export)
+func NewSDK(cfg *config.Config) (*SDK, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("config cannot be nil")
+	}
+
+	bytes, err := yaml.Marshal(cfg.OpenTelemetry)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal opentelemetry config: %w", err)
 	}
 
-	meterProvider, err := buildMetricsProvider(cfg, e)
+	slog.Debug("Instantiated OpenTelemetry SDK config", "config", string(bytes))
+	conf, err := otelconf.ParseYAML(bytes)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse opentelemetry config: %w", err)
 	}
 
-	return &otelSDK{
-		meterProvider: meterProvider,
-	}, nil
+	return &SDK{cfg: conf}, nil
 }
 
-func (s *otelSDK) ForceFlush(ctx context.Context) error {
-	return s.meterProvider.ForceFlush(ctx)
-}
-
-func (s *otelSDK) Shutdown(ctx context.Context) error {
-	return s.meterProvider.Shutdown(ctx)
-}
-
-func newExporter(exportCfg config.ExportConfig) (sdkmetric.Exporter, error) {
-	ts := temporalitySelector(exportCfg)
-
-	switch exportCfg.Mode {
-	case consts.ExportModeExecute:
-		return newGrpcExporter(exportCfg, ts)
-
-	case consts.ExportModeExecuteAndSave:
-		otlpExporter, err := newGrpcExporter(exportCfg, ts)
-		if err != nil {
-			return nil, err
-		}
-
-		fileExporter, err := exporter.NewFileExporter(exportCfg.File, ts)
-		if err != nil {
-			return nil, err
-		}
-
-		return exporter.NewCompositeExporter(otlpExporter, fileExporter), nil
-
-	case consts.ExportModeSave:
-		return exporter.NewFileExporter(exportCfg.File, ts)
-
-	default:
-		return nil, fmt.Errorf("invalid export mode: %s", exportCfg.Mode)
-	}
-}
-
-func newGrpcExporter(exportCfg config.ExportConfig, t sdkmetric.TemporalitySelector) (sdkmetric.Exporter, error) {
-	// TODO: Implement TLS
-
-	opts := []otlpmetricgrpc.Option{
-		otlpmetricgrpc.WithEndpoint(exportCfg.Endpoint),
-		otlpmetricgrpc.WithTemporalitySelector(t),
-		otlpmetricgrpc.WithInsecure(),
-	}
-
-	exporter, err := otlpmetricgrpc.New(context.Background(), opts...)
+func (s *SDK) Start() error {
+	sdk, err := otelconf.NewSDK(otelconf.WithOpenTelemetryConfiguration(*s.cfg))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create OTLP exporter: %w", err)
+		return fmt.Errorf("failed to create otel sdk: %w", err)
+	}
+	s.sdk = &sdk
+
+	otel.SetTracerProvider(sdk.TracerProvider())
+	otel.SetMeterProvider(sdk.MeterProvider())
+	global.SetLoggerProvider(sdk.LoggerProvider())
+	return nil
+}
+
+func (s *SDK) Shutdown(ctx context.Context) error {
+	if s.sdk != nil {
+		return s.sdk.Shutdown(ctx)
+	}
+	return nil
+}
+
+func (s *SDK) ForceFlush(ctx context.Context) error {
+	if s.sdk == nil {
+		return nil
+	}
+	if provider, ok := s.sdk.MeterProvider().(interface{ ForceFlush(context.Context) error }); ok {
+		return provider.ForceFlush(ctx)
+	}
+	if provider, ok := s.sdk.TracerProvider().(interface{ ForceFlush(context.Context) error }); ok {
+		return provider.ForceFlush(ctx)
+	}
+	if provider, ok := s.sdk.LoggerProvider().(interface{ ForceFlush(context.Context) error }); ok {
+		return provider.ForceFlush(ctx)
 	}
 
-	return exporter, nil
+	return nil
 }

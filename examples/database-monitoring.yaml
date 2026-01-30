@@ -1,22 +1,31 @@
-resource:
-  service_name: "order-service"
-  service_version: "2.1.0"
-  attributes:
-    environment: "production"
-    service.type: "database-client"
-    team: "backend"
+opentelemetry:
+  resource:
+    attributes:
+      - name: service.name
+        value: "order-service"
+      - name: service.version
+        value: "2.1.0"
+      - name: environment
+        value: "production"
+      - name: service.type
+        value: "database-client"
+      - name: team
+        value: "backend"
+
+  meter_provider:
+    views:
+      - selector:
+          instrument_name: "db.client.operation.duration"
+          instrument_type: "histogram"
+        stream:
+          aggregation:
+            base2_exponential_bucket_histogram:
+              max_scale: 20
+              max_size: 160
+              record_min_max: true
+
 
 metrics:
-  views:
-    - instrument:
-        name: "db.client.operation.duration"
-        kind: "histogram"
-      stream:
-        aggregation:
-          kind: "base2_exponential_histogram"
-          max_scale: 20
-          max_size: 160
-          no_min_max: false
 
   tasks:
     # Database operation duration - PostgreSQL SELECT operations
@@ -114,7 +123,3 @@ metrics:
         server.address: "postgres.example.com"
         server.port: "5432"
 
-export:
-  mode: "execute"
-  endpoint: "127.0.0.1:4317"
-  temporality: "delta"

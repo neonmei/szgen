@@ -1,43 +1,49 @@
-resource:
-  service_name: "histogram-demo"
-  service_version: "1.0.0"
-  attributes:
-    environment: "demo"
-    purpose: "histogram-views-showcase"
+opentelemetry:
+  resource:
+    attributes:
+      - name: service.name
+        value: "histogram-demo"
+      - name: service.version
+        value: "1.0.0"
+      - name: environment
+        value: "demo"
+      - name: purpose
+        value: "histogram-views-showcase"
+
+  meter_provider:
+    views:
+      # Exponential histogram view for latency metrics
+      - selector:
+          instrument_name: "*.latency"
+          instrument_type: "histogram"
+        stream:
+          aggregation:
+            base2_exponential_bucket_histogram:
+              max_scale: 20
+              max_size: 160
+              record_min_max: true
+
+      # Explicit bucket histogram view for size metrics
+      - selector:
+          instrument_name: "*.size"
+          instrument_type: "histogram"
+        stream:
+          aggregation:
+            explicit_bucket_histogram:
+              boundaries: [0, 100, 1000, 10000, 100000, 1000000]
+              record_min_max: true
+
+      # Custom buckets for response times
+      - selector:
+          instrument_name: "response.duration"
+          instrument_type: "histogram"
+        stream:
+          aggregation:
+            explicit_bucket_histogram:
+              boundaries: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]
+              record_min_max: true
 
 metrics:
-  views:
-    # Exponential histogram view for latency metrics
-    - instrument:
-        name: "*.latency"
-        kind: "histogram"
-      stream:
-        aggregation:
-          kind: "base2_exponential_histogram"
-          max_scale: 20
-          max_size: 160
-          no_min_max: false
-
-    # Explicit bucket histogram view for size metrics
-    - instrument:
-        name: "*.size"
-        kind: "histogram"
-      stream:
-        aggregation:
-          kind: "explicit_bucket_histogram"
-          buckets: [0, 100, 1000, 10000, 100000, 1000000]
-          no_min_max: false
-
-    # Custom buckets for response times
-    - instrument:
-        name: "response.duration"
-        kind: "histogram"
-      stream:
-        aggregation:
-          kind: "explicit_bucket_histogram"
-          buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]
-          no_min_max: false
-
   tasks:
     # Request latency with exponential histogram (uses view)
     - name: "request.latency"
@@ -118,8 +124,3 @@ metrics:
       attributes:
         file_type: "csv"
         processor: "batch_importer"
-
-export:
-  mode: "execute"
-  endpoint: "127.0.0.1:4317"
-  temporality: "delta"

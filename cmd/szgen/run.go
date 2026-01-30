@@ -6,12 +6,11 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/neonmei/szgen/internal/runner/metrictask"
-
 	"github.com/neonmei/szgen/internal/config"
 	"github.com/neonmei/szgen/internal/otel"
 	"github.com/neonmei/szgen/internal/runner"
 	"github.com/neonmei/szgen/internal/runner/executors"
+	"github.com/neonmei/szgen/internal/runner/metrictask"
 	"github.com/spf13/cobra"
 )
 
@@ -24,21 +23,43 @@ var runCmd = &cobra.Command{
 }
 
 func init() {
+	rootCmd.PersistentFlags().String("config", "", "Configuration file path")
 	rootCmd.AddCommand(runCmd)
 }
 
-func runConfigFile(cmd *cobra.Command, _ []string) error {
+func loadConfig(cmd *cobra.Command) (*config.Config, error) {
 	configPath, _ := cmd.Flags().GetString("config")
 	if configPath == "" {
-		return fmt.Errorf("config file path is required. Use --config flag or set default location")
+		return nil, fmt.Errorf("no config file path provided")
 	}
 
-	cfg, err := config.LoadConfigFile(configPath)
+	cfg, err := config.NewConfig(
+		config.WithDefaultConfig(),
+		config.WithOtelConfigFile(),
+		config.WithSzgenConfigFile(configPath),
+	)
 	if err != nil {
-		return fmt.Errorf("failed to load config file: %w", err)
+		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
-	ctx, cancelFn := setupContext(context.Background())
+	return cfg, nil
+}
+
+func runConfigFile(cmd *cobra.Command, _ []string) error {
+	cfg, err := loadConfig(cmd)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	if err := cfg.Validate(); err != nil {
+		return fmt.Errorf("invalid configuration: %w", err)
+	}
+
+	if len(cfg.Metrics.Tasks) == 0 {
+		return fmt.Errorf("no metric tasks defined in configuration")
+	}
+
+	ctx, cancelFn := setupSignalHandler(context.Background())
 	defer cancelFn()
 
 	// Metrics tasks for now
@@ -59,9 +80,13 @@ func runConfigFile(cmd *cobra.Command, _ []string) error {
 		tasks = append(tasks, task)
 	}
 
-	sdk, err := otel.Start(*cfg)
+	sdk, err := otel.NewSDK(cfg)
 	if err != nil {
-		return fmt.Errorf("failed to initialize OpenTelemetry SDK: %w", err)
+		return fmt.Errorf("failed to create sdk: %w", err)
+	}
+
+	if err := sdk.Start(); err != nil {
+		return fmt.Errorf("failed to start sdk: %w", err)
 	}
 	defer sdk.Shutdown(ctx)
 
