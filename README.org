@@ -118,7 +118,60 @@ szgen run --config config.yaml --executor concurrent --max-concurrency 4
 
 * Configuration File Format
 
-** Minimal example
+There are 2 main configurations:
+1. ~otelconf~ configuration: is a emerging standard that allows configuring OpenTelemetry SDK
+2. ~szgen~: is a config file for this tool that allows to configure and run the same tasks repeatedly with the ~run~ CLI command.
+
+** otelconf: configuring OpenTelemetry SDK
+
+To get a glance of what ~otelconf~ allows configuring, we can take a look at the full config in ~opentelemetry-go-contrib~ testdata: https://github.com/open-telemetry/opentelemetry-go-contrib/blob/main/otelconf/testdata/v1.0.0.yaml
+The defaults if we don't tune it is something like the following:
+
+#+begin_src yaml
+file_format: "1.0-rc.2"
+disabled: false
+log_level: "info"
+meter_provider:
+  readers:
+    - periodic:
+        interval: 1000
+        timeout: 1000
+        exporter:
+          otlp_grpc:
+            endpoint: "http://127.0.0.1:4317"
+            encoding: "protobuf"
+            compression: "gzip"
+            insecure: true
+            timeout: 1000
+            temporality_preference: "delta"
+            default_histogram_aggregation: "base2_exponential_bucket_histogram"
+  views:
+    - selector:
+        instrument_type: "histogram"
+      stream:
+        aggregation:
+          base2_exponential_bucket_histogram:
+            max_size: 100
+            max_scale: 10
+            no_min_max: false
+resource:
+  attributes:
+    - name: "service.name"
+      value: "szgen"
+      type: "string"
+    - name: "service.version"
+      value: "0.1.0"
+      type: "string"
+#+end_src
+
+This OpenTelemetry configuration will be sourced from a couple places (from less to high priority):
+1. defaults shown above
+2. ~~/.config/szgen/opentelemetry.yaml~
+3. the ~szgen~ config has a ~opentelemetry~ key which will be used as strict ~otelconf~
+
+For convenience, there is some minimal overlaying logic of global configs (1,2) and szgen config. This allows for example setting only the resource attributes while avoiding repeating connection parameters all over the place (these can be in a global location).
+
+** szgen: minimal example
 
 For counting =1= each second (constant generator), five times :
 
@@ -130,7 +183,7 @@ metrics:
     count: 5
 #+end_src
 
-** Basic Structure
+** szgen: basic Structure
 
 #+begin_src yaml
 opentelemetry:

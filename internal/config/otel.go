@@ -33,8 +33,9 @@ func NewOTelConfig() map[string]any {
 					"stream": map[string]any{
 						"aggregation": map[string]any{
 							"base2_exponential_bucket_histogram": map[string]any{
-								"max_size":  100,
-								"max_scale": 10,
+								"max_size":   100,
+								"max_scale":  10,
+								"no_min_max": false,
 							},
 						},
 					},
