@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/neonmei/szgen/internal/config"
+	"github.com/neonmei/szgen/internal/consts"
 	"github.com/neonmei/szgen/internal/otel"
 	"github.com/neonmei/szgen/internal/runner"
 	"github.com/neonmei/szgen/internal/runner/executors"
@@ -34,7 +34,7 @@ func loadConfig(cmd *cobra.Command) (*config.Config, error) {
 	}
 
 	cfg, err := config.NewConfig(
-		config.WithDefaultConfig(),
+		config.WithDefaultConfig(version),
 		config.WithOtelConfigFile(),
 		config.WithSzgenConfigFile(configPath),
 	)
@@ -55,18 +55,13 @@ func runConfigFile(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	if len(cfg.Metrics.Tasks) == 0 {
-		return fmt.Errorf("no metric tasks defined in configuration")
-	}
-
 	ctx, cancelFn := setupSignalHandler(context.Background())
 	defer cancelFn()
 
-	// Metrics tasks for now
 	tasks := make([]runner.Task, 0, len(cfg.Metrics.Tasks))
 	for i, metricCfg := range cfg.Metrics.Tasks {
 		slog.Info("Queued task",
-			"name", metricCfg.Name,
+			"metric", metricCfg.Name,
 			"generator", metricCfg.Generator,
 			"kind", metricCfg.Kind,
 			"type", metricCfg.Type,
@@ -88,7 +83,7 @@ func runConfigFile(cmd *cobra.Command, _ []string) error {
 	if err := sdk.Start(); err != nil {
 		return fmt.Errorf("failed to start sdk: %w", err)
 	}
-	defer sdk.Shutdown(ctx)
+	defer func() { _ = sdk.Shutdown(ctx) }()
 
 	slog.Debug("Loaded configuration", "task_count", len(cfg.Metrics.Tasks))
 
@@ -103,7 +98,7 @@ func runConfigFile(cmd *cobra.Command, _ []string) error {
 
 	// Force flush metrics before shutdown
 	slog.Info("Flushing metrics")
-	flushCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	flushCtx, cancel := context.WithTimeout(context.Background(), consts.DefaultFlushTimeout)
 	defer cancel()
 
 	if err := sdk.ForceFlush(flushCtx); err != nil {

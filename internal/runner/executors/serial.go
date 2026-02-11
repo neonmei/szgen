@@ -12,6 +12,9 @@ type serialExecutor struct{}
 
 func (e *serialExecutor) Execute(ctx context.Context, tasks []runner.Task) error {
 	for i, task := range tasks {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		if err := task.Execute(ctx); err != nil {
 			return fmt.Errorf("task %d aborted: %w", i+1, err)
 		}

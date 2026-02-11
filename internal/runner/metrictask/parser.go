@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/neonmei/szgen/internal/runner"
-
 	"github.com/neonmei/szgen/internal/config"
 	"github.com/neonmei/szgen/internal/consts"
 	"github.com/neonmei/szgen/internal/generator"
+	"github.com/neonmei/szgen/internal/runner"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -16,26 +15,22 @@ import (
 
 func newInstrument[T int64 | float64](ctx context.Context, cfg config.MetricTask) (runner.Task, error) {
 	attr := parseAttributes(cfg.Attributes)
+	meter := otel.Meter(consts.DefaultMeterName)
 
 	iter, err := generator.New[T](ctx, cfg.Generator, cfg.Value, cfg.Count)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create int64 iterator: %w", err)
+		return nil, fmt.Errorf("create %s iterator: %w", cfg.Kind, err)
 	}
 
-	var recorder valueRecorder[T]
-	switch cfg.Kind {
-	case consts.MetricTypeCounter:
-		recorder, err = newCounter[T](cfg, attr)
-	case consts.MetricTypeGauge:
-		recorder, err = newGauge[T](cfg, attr)
-	case consts.MetricTypeHistogram:
-		recorder, err = newHistogram[T](cfg, attr)
-	case consts.MetricTypeUpDownCounter:
-		recorder, err = newUpDownCounter[T](cfg, attr)
+	var rec any
+	switch any(T(0)).(type) {
+	case int64:
+		rec, err = newInt64Recorder(meter, cfg, attr)
+	case float64:
+		rec, err = newFloat64Recorder(meter, cfg, attr)
 	default:
-		return nil, fmt.Errorf("unsupported metric kind: %s", cfg.Kind)
+		return nil, fmt.Errorf("unsupported numeric type")
 	}
-
 	if err != nil {
 		return nil, err
 	}
@@ -44,106 +39,84 @@ func newInstrument[T int64 | float64](ctx context.Context, cfg config.MetricTask
 		taskName:    cfg.Name,
 		genInterval: cfg.Rate,
 		genIter:     iter,
-		recorder:    recorder,
+		recorder:    rec.(valueRecorder[T]),
 	}, nil
 }
 
-func newCounter[T int64 | float64](cfg config.MetricTask, attr []attribute.KeyValue) (valueRecorder[T], error) {
-	meter := otel.Meter("szgen")
+func newInt64Recorder(m metric.Meter, cfg config.MetricTask, attr []attribute.KeyValue) (valueRecorder[int64], error) {
+	desc := metric.WithDescription(cfg.Description)
+	unit := metric.WithUnit(cfg.Unit)
+	withAttr := metric.WithAttributes(attr...)
 
-	switch any(T(0)).(type) {
-	case int64:
-		c, err := meter.Int64Counter(cfg.Name, metric.WithDescription(cfg.Description), metric.WithUnit(cfg.Unit))
+	switch cfg.Kind {
+	case consts.MetricTypeCounter:
+		c, err := m.Int64Counter(cfg.Name, desc, unit)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create int64 counter instrument: %w", err)
+			return nil, fmt.Errorf("create int64 counter %q: %w", cfg.Name, err)
 		}
+		return func(ctx context.Context, v int64) { c.Add(ctx, v, withAttr) }, nil
 
-		return func(ctx context.Context, value T) { c.Add(ctx, int64(value), metric.WithAttributes(attr...)) }, nil
-
-	case float64:
-		c, err := meter.Float64Counter(cfg.Name, metric.WithDescription(cfg.Description), metric.WithUnit(cfg.Unit))
+	case consts.MetricTypeGauge:
+		c, err := m.Int64Gauge(cfg.Name, desc, unit)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create int64 counter instrument: %w", err)
+			return nil, fmt.Errorf("create int64 gauge %q: %w", cfg.Name, err)
 		}
+		return func(ctx context.Context, v int64) { c.Record(ctx, v, withAttr) }, nil
 
-		return func(ctx context.Context, value T) { c.Add(ctx, float64(value), metric.WithAttributes(attr...)) }, nil
+	case consts.MetricTypeHistogram:
+		c, err := m.Int64Histogram(cfg.Name, desc, unit)
+		if err != nil {
+			return nil, fmt.Errorf("create int64 histogram %q: %w", cfg.Name, err)
+		}
+		return func(ctx context.Context, v int64) { c.Record(ctx, v, withAttr) }, nil
+
+	case consts.MetricTypeUpDownCounter:
+		c, err := m.Int64UpDownCounter(cfg.Name, desc, unit)
+		if err != nil {
+			return nil, fmt.Errorf("create int64 updowncounter %q: %w", cfg.Name, err)
+		}
+		return func(ctx context.Context, v int64) { c.Add(ctx, v, withAttr) }, nil
 
 	default:
-		return nil, fmt.Errorf("invalid type")
+		return nil, fmt.Errorf("unsupported metric kind: %s", cfg.Kind)
 	}
 }
 
-func newGauge[T int64 | float64](cfg config.MetricTask, attr []attribute.KeyValue) (valueRecorder[T], error) {
-	meter := otel.Meter("szgen")
+func newFloat64Recorder(m metric.Meter, cfg config.MetricTask, attr []attribute.KeyValue) (valueRecorder[float64], error) {
+	desc := metric.WithDescription(cfg.Description)
+	unit := metric.WithUnit(cfg.Unit)
+	withAttr := metric.WithAttributes(attr...)
 
-	switch any(T(0)).(type) {
-	case int64:
-		c, err := meter.Int64Gauge(cfg.Name, metric.WithDescription(cfg.Description), metric.WithUnit(cfg.Unit))
+	switch cfg.Kind {
+	case consts.MetricTypeCounter:
+		c, err := m.Float64Counter(cfg.Name, desc, unit)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create int64 counter instrument: %w", err)
+			return nil, fmt.Errorf("create float64 counter %q: %w", cfg.Name, err)
 		}
+		return func(ctx context.Context, v float64) { c.Add(ctx, v, withAttr) }, nil
 
-		return func(ctx context.Context, value T) { c.Record(ctx, int64(value), metric.WithAttributes(attr...)) }, nil
-
-	case float64:
-		c, err := meter.Float64Gauge(cfg.Name, metric.WithDescription(cfg.Description), metric.WithUnit(cfg.Unit))
+	case consts.MetricTypeGauge:
+		c, err := m.Float64Gauge(cfg.Name, desc, unit)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create int64 counter instrument: %w", err)
+			return nil, fmt.Errorf("create float64 gauge %q: %w", cfg.Name, err)
 		}
+		return func(ctx context.Context, v float64) { c.Record(ctx, v, withAttr) }, nil
 
-		return func(ctx context.Context, value T) { c.Record(ctx, float64(value), metric.WithAttributes(attr...)) }, nil
+	case consts.MetricTypeHistogram:
+		c, err := m.Float64Histogram(cfg.Name, desc, unit)
+		if err != nil {
+			return nil, fmt.Errorf("create float64 histogram %q: %w", cfg.Name, err)
+		}
+		return func(ctx context.Context, v float64) { c.Record(ctx, v, withAttr) }, nil
+
+	case consts.MetricTypeUpDownCounter:
+		c, err := m.Float64UpDownCounter(cfg.Name, desc, unit)
+		if err != nil {
+			return nil, fmt.Errorf("create float64 updowncounter %q: %w", cfg.Name, err)
+		}
+		return func(ctx context.Context, v float64) { c.Add(ctx, v, withAttr) }, nil
 
 	default:
-		return nil, fmt.Errorf("invalid type")
-	}
-}
-
-func newUpDownCounter[T int64 | float64](cfg config.MetricTask, attr []attribute.KeyValue) (valueRecorder[T], error) {
-	meter := otel.Meter("szgen")
-
-	switch any(T(0)).(type) {
-	case int64:
-		c, err := meter.Int64UpDownCounter(cfg.Name, metric.WithDescription(cfg.Description), metric.WithUnit(cfg.Unit))
-		if err != nil {
-			return nil, fmt.Errorf("failed to create int64 counter instrument: %w", err)
-		}
-
-		return func(ctx context.Context, value T) { c.Add(ctx, int64(value), metric.WithAttributes(attr...)) }, nil
-
-	case float64:
-		c, err := meter.Float64UpDownCounter(cfg.Name, metric.WithDescription(cfg.Description), metric.WithUnit(cfg.Unit))
-		if err != nil {
-			return nil, fmt.Errorf("failed to create int64 counter instrument: %w", err)
-		}
-
-		return func(ctx context.Context, value T) { c.Add(ctx, float64(value), metric.WithAttributes(attr...)) }, nil
-
-	default:
-		return nil, fmt.Errorf("invalid type")
-	}
-}
-
-func newHistogram[T int64 | float64](cfg config.MetricTask, attr []attribute.KeyValue) (valueRecorder[T], error) {
-	meter := otel.Meter("szgen")
-
-	switch any(T(0)).(type) {
-	case int64:
-		c, err := meter.Int64Histogram(cfg.Name, metric.WithDescription(cfg.Description), metric.WithUnit(cfg.Unit))
-		if err != nil {
-			return nil, fmt.Errorf("failed to create int64 counter instrument: %w", err)
-		}
-
-		return func(ctx context.Context, value T) { c.Record(ctx, int64(value), metric.WithAttributes(attr...)) }, nil
-
-	case float64:
-		c, err := meter.Float64Histogram(cfg.Name, metric.WithDescription(cfg.Description), metric.WithUnit(cfg.Unit))
-		if err != nil {
-			return nil, fmt.Errorf("failed to create int64 counter instrument: %w", err)
-		}
-
-		return func(ctx context.Context, value T) { c.Record(ctx, float64(value), metric.WithAttributes(attr...)) }, nil
-
-	default:
-		return nil, fmt.Errorf("invalid type")
+		return nil, fmt.Errorf("unsupported metric kind: %s", cfg.Kind)
 	}
 }

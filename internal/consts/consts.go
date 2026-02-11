@@ -1,11 +1,8 @@
 package consts
 
-import "time"
-
-const (
-	ExportModeExecute        = "execute"
-	ExportModeSave           = "save"
-	ExportModeExecuteAndSave = "execute-and-save"
+import (
+	"math"
+	"time"
 )
 
 const (
@@ -29,14 +26,11 @@ const (
 )
 
 const (
-	InstrumentKindUndefined         = ""
-	InstrumentKindCounter           = "counter"
-	InstrumentKindGauge             = "gauge"
-	InstrumentKindHistogram         = "histogram"
-	InstrumentKindObservableCounter = "observablecounter"
-	InstrumentKindObservableGauge   = "observablegauge"
-	InstrumentKindObservableUpDown  = "observableupdowncounter"
-	InstrumentKindUpDownCounter     = "updowncounter"
+	InstrumentKindUndefined     = ""
+	InstrumentKindCounter       = "counter"
+	InstrumentKindGauge         = "gauge"
+	InstrumentKindHistogram     = "histogram"
+	InstrumentKindUpDownCounter = "updowncounter"
 )
 
 const (
@@ -45,18 +39,32 @@ const (
 	DefaultDelta             = 1.0
 	DefaultDescription       = "Metric generated with szgen"
 	DefaultExecutorStrategy  = ExecutorStrategySerial
-	DefaultExportMode        = ExportModeExecute
 	DefaultExportTemporality = TemporalityDelta
 	DefaultGenerator         = GeneratorConstant
+	DefaultMeterName         = "szgen"
 	DefaultMetricKind        = MetricTypeCounter
 	DefaultMetricName        = "szgen.metric"
-	DefaultOTLPEndpoint      = "127.0.0.1:4317"
+	DefaultOTLPEndpoint      = "http://127.0.0.1:4317"
 	DefaultOTLPInsecure      = true
 	DefaultOTLPInterval      = time.Second
 	DefaultRate              = time.Second
-	DefaultServiceName       = "szgen"
-	DefaultServiceVersion    = "0.1.0"
 	DefaultSineGeneratorB    = 10
 	DefaultValue             = "1"
 	DefaultValueType         = ValueTypeFloat64
+
+	DefaultFlushTimeout = 5 * time.Second
+
+	DefaultOTelIntervalMillis = 1000
+	DefaultOTelTimeoutMillis  = 1000
+	DefaultOTelMaxSize        = 100
+	DefaultOTelMaxScale       = 10
+
+	DefaultFilePerm = 0o644
+
+	ParamMaxConcurrency = "max_concurrency"
+
+	SineParamIndexB      = 1
+	SineParamIndexVShift = 2
+	SineParamIndexHShift = 3
+	SineFullCircle       = 2 * math.Pi
 )

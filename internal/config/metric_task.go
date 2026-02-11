@@ -11,16 +11,16 @@ import (
 type (
 	MetricTaskOption func(*MetricTask)
 	MetricTask       struct {
-		Name        string            `yaml:"name"`
-		Kind        string            `yaml:"kind"`
-		Type        string            `yaml:"type,omitempty"`
-		Rate        time.Duration     `yaml:"rate,omitempty"`
-		Count       int               `yaml:"count,omitempty"`
-		Value       string            `yaml:"value,omitempty"`
-		Attributes  map[string]string `yaml:"attributes,omitempty"`
-		Generator   string            `yaml:"generator,omitempty"`
-		Description string            `yaml:"description,omitempty"`
-		Unit        string            `yaml:"unit,omitempty"`
+		Name        string         `yaml:"name"`
+		Kind        string         `yaml:"kind"`
+		Type        string         `yaml:"type,omitempty"`
+		Rate        time.Duration  `yaml:"rate,omitempty"`
+		Count       int            `yaml:"count,omitempty"`
+		Value       string         `yaml:"value,omitempty"`
+		Attributes  map[string]any `yaml:"attributes,omitempty"`
+		Generator   string         `yaml:"generator,omitempty"`
+		Description string         `yaml:"description,omitempty"`
+		Unit        string         `yaml:"unit,omitempty"`
 	}
 )
 
@@ -48,36 +48,32 @@ func (mc *MetricTask) Validate() error {
 	}
 
 	if err := ValidateMetricKind(mc.Kind); err != nil {
-		return err
+		return fmt.Errorf("metric %q: %w", mc.Name, err)
 	}
 
 	if err := ValidateGenerator(mc.Generator); err != nil {
-		return err
+		return fmt.Errorf("metric %q: %w", mc.Name, err)
 	}
 
 	if err := ValidateValueType(mc.Type); err != nil {
-		return err
+		return fmt.Errorf("metric %q: %w", mc.Name, err)
 	}
 
 	if mc.Rate == 0 {
-		return fmt.Errorf("empty rate")
+		return fmt.Errorf("metric %q: empty rate", mc.Name)
 	}
 
 	return nil
 }
 
 func (mc *MetricTask) UnmarshalYAML(node *yaml.Node) error {
-	// Start with defaults
 	defaultTask := NewMetricTask()
 
-	// Unmarshal YAML over the defaults
-	// Use type alias to avoid infinite recursion
 	type rawMetricTask MetricTask
 	if err := node.Decode((*rawMetricTask)(defaultTask)); err != nil {
 		return err
 	}
 
-	// Copy result to receiver
 	*mc = *defaultTask
 
 	return nil
@@ -85,80 +81,60 @@ func (mc *MetricTask) UnmarshalYAML(node *yaml.Node) error {
 
 func WithName(name string) MetricTaskOption {
 	return func(mt *MetricTask) {
-		if name != "" {
-			mt.Name = name
-		}
+		mt.Name = name
 	}
 }
 
 func WithKind(kind string) MetricTaskOption {
 	return func(mt *MetricTask) {
-		if kind != "" {
-			mt.Kind = kind
-		}
+		mt.Kind = kind
 	}
 }
 
 func WithType(valueType string) MetricTaskOption {
 	return func(mt *MetricTask) {
-		if valueType != "" {
-			mt.Type = valueType
-		}
+		mt.Type = valueType
 	}
 }
 
 func WithRate(rate time.Duration) MetricTaskOption {
 	return func(mt *MetricTask) {
-		if rate != 0 {
-			mt.Rate = rate
-		}
+		mt.Rate = rate
 	}
 }
 
 func WithCount(count int) MetricTaskOption {
 	return func(mt *MetricTask) {
-		if count != 0 {
-			mt.Count = count
-		}
+		mt.Count = count
 	}
 }
 
 func WithValue(value string) MetricTaskOption {
 	return func(mt *MetricTask) {
-		if value != "" {
-			mt.Value = value
-		}
+		mt.Value = value
 	}
 }
 
-func WithMetricAttributes(attrs map[string]string) MetricTaskOption {
+func WithMetricAttributes(attrs map[string]any) MetricTaskOption {
 	return func(mt *MetricTask) {
-		if attrs != nil {
-			mt.Attributes = attrs
-		}
+		mt.Attributes = attrs
 	}
 }
 
 func WithGenerator(generator string) MetricTaskOption {
 	return func(mt *MetricTask) {
-		if generator != "" {
-			mt.Generator = generator
-		}
+		mt.Generator = generator
 	}
 }
 
 func WithDescription(description string) MetricTaskOption {
 	return func(mt *MetricTask) {
-		if description != "" {
-			mt.Description = description
-		}
+		mt.Description = description
 	}
 }
 
 func WithUnit(unit string) MetricTaskOption {
 	return func(mt *MetricTask) {
-		if unit != "" {
-			mt.Unit = unit
-		}
+		mt.Unit = unit
 	}
 }

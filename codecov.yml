@@ -1,0 +1,19 @@
+codecov:
+  require_ci_to_pass: yes
+
+coverage:
+  status:
+    project:
+      default:
+        target: 80%       # target coverage percentage
+        threshold: 1%     # allow 1% drop from target
+        base: auto        # use previous commit as base
+    patch:
+      default:
+        target: 80%       # new code must have 80% coverage
+
+ignore:
+  - "mocks/**/*"          # ignore mocks (matches .covignore)
+  - "cmd/**/*"            # usually exclude main/cmd packages or treat lightly
+  - "internal/otel/**/*"  # matches .covignore 'otel'
+  - "**/*_test.go"       # ignore test files themselves

@@ -2,9 +2,11 @@ package executors
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
+	"github.com/neonmei/szgen/internal/consts"
 	"github.com/neonmei/szgen/internal/runner"
 	"golang.org/x/sync/errgroup"
 )
@@ -47,24 +49,29 @@ func (e *concurrentExecutor) executeWithRecovery(ctx context.Context, task runne
 		}
 	}()
 
-	if err := task.Execute(ctx); err != nil && err != context.Canceled {
+	if err := task.Execute(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		return fmt.Errorf("task aborted: %w", err)
 	}
 	return nil
 }
 
 func NewConcurrent(params map[string]any) *concurrentExecutor {
-	maxConcurrency := 0
-
-	if val, ok := params["max_concurrency"]; ok {
-		if intVal, ok := val.(int); ok {
-			maxConcurrency = intVal
-		} else if floatVal, ok := val.(float64); ok {
-			maxConcurrency = int(floatVal)
-		}
-	}
-
 	return &concurrentExecutor{
-		maxConcurrency: maxConcurrency,
+		maxConcurrency: intParam(params, consts.ParamMaxConcurrency, 0),
+	}
+}
+
+func intParam(params map[string]any, key string, fallback int) int {
+	val, ok := params[key]
+	if !ok {
+		return fallback
+	}
+	switch v := val.(type) {
+	case int:
+		return v
+	case float64:
+		return int(v)
+	default:
+		return fallback
 	}
 }

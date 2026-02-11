@@ -1,10 +1,11 @@
 .claude
+szstash
 bin
+dist
 /szgen
 *.out
 *.html
 .idea
 
 # not yet
-*_test.go
 flake.*

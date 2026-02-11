@@ -12,27 +12,49 @@ import (
 )
 
 func buildMetricConfig(cmd *cobra.Command, metricType string) (*config.MetricTask, error) {
-	name, _ := cmd.Flags().GetString("name")
-	description, _ := cmd.Flags().GetString("description")
-	unit, _ := cmd.Flags().GetString("unit")
-	generator, _ := cmd.Flags().GetString("generator")
-	value, _ := cmd.Flags().GetString("value")
-	valueType, _ := cmd.Flags().GetString("type")
-	count, _ := cmd.Flags().GetInt("count")
-	rate, _ := cmd.Flags().GetDuration("rate")
-	attributes, _ := cmd.Flags().GetStringToString("attributes")
-
 	options := []config.MetricTaskOption{
 		config.WithKind(metricType),
-		config.WithName(name),
-		config.WithDescription(description),
-		config.WithUnit(unit),
-		config.WithGenerator(generator),
-		config.WithValue(value),
-		config.WithType(valueType),
-		config.WithCount(count),
-		config.WithRate(rate),
-		config.WithMetricAttributes(attributes),
+	}
+
+	if cmd.Flags().Changed("name") {
+		name, _ := cmd.Flags().GetString("name")
+		options = append(options, config.WithName(name))
+	}
+	if cmd.Flags().Changed("description") {
+		description, _ := cmd.Flags().GetString("description")
+		options = append(options, config.WithDescription(description))
+	}
+	if cmd.Flags().Changed("unit") {
+		unit, _ := cmd.Flags().GetString("unit")
+		options = append(options, config.WithUnit(unit))
+	}
+	if cmd.Flags().Changed("generator") {
+		generator, _ := cmd.Flags().GetString("generator")
+		options = append(options, config.WithGenerator(generator))
+	}
+	if cmd.Flags().Changed("value") {
+		value, _ := cmd.Flags().GetString("value")
+		options = append(options, config.WithValue(value))
+	}
+	if cmd.Flags().Changed("type") {
+		valueType, _ := cmd.Flags().GetString("type")
+		options = append(options, config.WithType(valueType))
+	}
+	if cmd.Flags().Changed("count") {
+		count, _ := cmd.Flags().GetInt("count")
+		options = append(options, config.WithCount(count))
+	}
+	if cmd.Flags().Changed("rate") {
+		rate, _ := cmd.Flags().GetDuration("rate")
+		options = append(options, config.WithRate(rate))
+	}
+	if cmd.Flags().Changed("attributes") {
+		strAttrs, _ := cmd.Flags().GetStringToString("attributes")
+		attrs := make(map[string]any, len(strAttrs))
+		for k, v := range strAttrs {
+			attrs[k] = v
+		}
+		options = append(options, config.WithMetricAttributes(attrs))
 	}
 
 	mc := config.NewMetricTask(options...)
@@ -42,7 +64,7 @@ func buildMetricConfig(cmd *cobra.Command, metricType string) (*config.MetricTas
 	}
 
 	slog.Debug("loaded config",
-		"name", mc.Name,
+		"metric", mc.Name,
 		"kind", mc.Kind,
 		"type", mc.Type,
 		"rate", mc.Rate,

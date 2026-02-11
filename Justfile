@@ -18,9 +18,20 @@ test:
 test-norace:
     go test ./...
 
-# Run tests with coverage
 coverage:
     go test -coverprofile=coverage.out ./...
+
+# run tests and update coverage.out
+go-test:
+    go test -json > report.json -cover -coverprofile=coverage.out ./...
+
+# check coverage
+go-cov: go-test
+    touch .covignore ; mkdir -p szstash
+    cp coverage.out szstash/coverage.out
+    #grep -vE "main.go|bench_utils" szstash/coverage.out > coverage.out
+    grep -v -f .covignore szstash/coverage.out > coverage.out
+    go tool cover -func=coverage.out
     go tool cover -html=coverage.out -o coverage.html
 
 # Run benchmarks

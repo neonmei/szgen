@@ -1,4 +1,4 @@
-package otel
+package logging
 
 import (
 	"log/slog"

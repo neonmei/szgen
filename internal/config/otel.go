@@ -1,24 +1,26 @@
 package config
 
-func NewOTelConfig() map[string]any {
+import "github.com/neonmei/szgen/internal/consts"
+
+func NewOTelConfig(serviceVersion string) map[string]any {
 	return map[string]any{
-		"file_format": "1.0-rc.2",
+		"file_format": "1.0",
 		"disabled":    false,
 		"log_level":   "info",
 		"meter_provider": map[string]any{
 			"readers": []map[string]any{
 				{
 					"periodic": map[string]any{
-						"interval": 1000,
-						"timeout":  1000,
+						"interval": consts.DefaultOTelIntervalMillis,
+						"timeout":  consts.DefaultOTelTimeoutMillis,
 						"exporter": map[string]any{
 							"otlp_grpc": map[string]any{
-								"endpoint":                      "http://127.0.0.1:4317",
+								"endpoint":                      consts.DefaultOTLPEndpoint,
 								"encoding":                      "protobuf",
 								"compression":                   "gzip",
-								"insecure":                      true,
-								"timeout":                       1000,
-								"temporality_preference":        "delta",
+								"insecure":                      consts.DefaultOTLPInsecure,
+								"timeout":                       consts.DefaultOTelTimeoutMillis,
+								"temporality_preference":        consts.DefaultExportTemporality,
 								"default_histogram_aggregation": "base2_exponential_bucket_histogram",
 							},
 						},
@@ -33,8 +35,8 @@ func NewOTelConfig() map[string]any {
 					"stream": map[string]any{
 						"aggregation": map[string]any{
 							"base2_exponential_bucket_histogram": map[string]any{
-								"max_size":   100,
-								"max_scale":  10,
+								"max_size":   consts.DefaultOTelMaxSize,
+								"max_scale":  consts.DefaultOTelMaxScale,
 								"no_min_max": false,
 							},
 						},
@@ -51,7 +53,7 @@ func NewOTelConfig() map[string]any {
 				},
 				{
 					"name":  "service.version",
-					"value": "0.1.0",
+					"value": serviceVersion,
 					"type":  "string",
 				},
 			},
