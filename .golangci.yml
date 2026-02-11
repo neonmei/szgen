@@ -9,32 +9,32 @@ linters:
   # See: https://golangci-lint.run/usage/linters/
   enable:
     - govet
-    - ineffassign 
+    - ineffassign
     - staticcheck
     - unused
     - canonicalheader
     - copyloopvar
     - dupl
+    - errcheck
+    - errorlint
     - errname
     - exhaustive
-    - exptostd 
+    - exptostd
+    - gocritic
     - mnd
     - prealloc
+    - sloglint
     - spancheck
     - nilnil
     - durationcheck
     - usestdlibvars
-    - copyloopvar
     - bodyclose
   # strict-er
   disable:
     #- contextcheck
     - tagliatelle
     - exhaustruct
-    - errorlint
     - containedctx
-    - errcheck
-    - sloglint
   exclusions:
     generated: lax
     presets:

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/neonmei/szgen/internal/config"
 	"github.com/neonmei/szgen/internal/consts"
@@ -37,7 +36,7 @@ func init() {
 }
 
 func runMetricCommand(cmd *cobra.Command, metricType string) error {
-	cfg, err := config.NewConfig(config.WithDefaultConfig(), config.WithOtelConfigFile())
+	cfg, err := config.NewConfig(config.WithDefaultConfig(version), config.WithOtelConfigFile())
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
@@ -87,7 +86,7 @@ func runMetricCommand(cmd *cobra.Command, metricType string) error {
 	}
 
 	slog.Info("Flushing metrics")
-	flushCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	flushCtx, cancel := context.WithTimeout(context.Background(), consts.DefaultFlushTimeout)
 	defer cancel()
 
 	if err := sdk.ForceFlush(flushCtx); err != nil {

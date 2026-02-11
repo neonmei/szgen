@@ -32,10 +32,10 @@ func NewConfig(options ...Option) (*Config, error) {
 	return c, nil
 }
 
-func WithDefaultConfig() Option {
+func WithDefaultConfig(serviceVersion string) Option {
 	return func(c *Config) error {
 		c.Metrics = &MetricsConfig{Tasks: []MetricTask{}}
-		c.OpenTelemetry = NewOTelConfig()
+		c.OpenTelemetry = NewOTelConfig(serviceVersion)
 		c.Executor = NewExecutorConfig()
 		return nil
 	}

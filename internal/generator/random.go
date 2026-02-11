@@ -12,11 +12,11 @@ func newRandomGenerator[T int64 | float64](ctx context.Context, valueStr string,
 		return nil, err
 	}
 
-	maxVal := values[0]
-	minVal := T(0)
+	minVal := values[0]
+	maxVal := T(0)
 
 	if len(values) > 1 {
-		minVal = values[1]
+		maxVal = values[1]
 	}
 
 	if minVal >= maxVal {

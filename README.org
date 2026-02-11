@@ -5,7 +5,7 @@
 
 [[./docs/sz.png]]
 
-*szgen* is a basic CLI tool for generating synthetic OpenTelemetry data inspired by tools like ~telemetrygen~ or ~dogshell~. The motivation is that I needed to quickly model different metric generation scenarios and test them with different OTel collector setups (mostly for component development), so this started as mini script and eventually it got a little bigger.
+*szgen* is a basic CLI tool for generating synthetic OpenTelemetry data inspired by tools like ~telemetrygen~ or ~dogshell~. Why I made this? I wanted to quickly throw metrics at a collector to test/debug a custom OTel processor, eventually I also started using it for measuring stuff and generating metrics in bash scripts.
 
 At the moment this CLI only supports metrics data. It supports =Counter=, =Gauge=, =Histogram= (+Exponential Histogram), and =UpDownCounter= metric types with configurable value generators. Eventually I might add other signal types.
 

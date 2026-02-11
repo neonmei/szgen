@@ -18,15 +18,15 @@ func newSineGenerator[T int64 | float64](ctx context.Context, valueStr string, c
 	verticalShift := T(1)
 	horizontalShift := T(0)
 
-	if len(sineParams) > 1 {
+	if len(sineParams) > consts.SineParamIndexB {
 		b = sineParams[1]
 	}
 
-	if len(sineParams) > 2 {
+	if len(sineParams) > consts.SineParamIndexVShift {
 		verticalShift = sineParams[2]
 	}
 
-	if len(sineParams) > 3 {
+	if len(sineParams) > consts.SineParamIndexHShift {
 		horizontalShift = sineParams[3]
 	}
 
@@ -36,7 +36,7 @@ func newSineGenerator[T int64 | float64](ctx context.Context, valueStr string, c
 			case <-ctx.Done():
 				return
 			default:
-				period := 2 * math.Pi / float64(b)
+				period := consts.SineFullCircle / float64(b)
 				angle := period * (float64(x) + float64(horizontalShift))
 				sineValue := math.Sin(angle)
 				result := T(float64(amplitude)*sineValue + float64(verticalShift))

@@ -13,8 +13,7 @@ var (
 	metricNameRegex = regexp.MustCompile(`^[a-zA-Z]{1}[\w\.]+$`)
 
 	validMetricTypes   = []string{consts.MetricTypeCounter, consts.MetricTypeGauge, consts.MetricTypeHistogram, consts.MetricTypeUpDownCounter}
-	ValidTemporalities = []string{consts.TemporalityCumulative, consts.TemporalityDelta}
-	validModes         = []string{consts.ExportModeExecute, consts.ExportModeExecuteAndSave, consts.ExportModeSave}
+	validTemporalities = []string{consts.TemporalityCumulative, consts.TemporalityDelta}
 	validGenerators    = []string{
 		consts.GeneratorConstant,
 		consts.GeneratorRandom,
@@ -28,9 +27,6 @@ var (
 		consts.InstrumentKindCounter,
 		consts.InstrumentKindGauge,
 		consts.InstrumentKindHistogram,
-		consts.InstrumentKindObservableCounter,
-		consts.InstrumentKindObservableGauge,
-		consts.InstrumentKindObservableUpDown,
 		consts.InstrumentKindUpDownCounter,
 	}
 )
@@ -63,17 +59,9 @@ func ValidateGenerator(name string) error {
 	return nil
 }
 
-func ValidateMode(mode string) error {
-	if !slices.Contains(validModes, mode) {
-		return fmt.Errorf("invalid mode '%s', must be one of: %s", mode, strings.Join(validModes, ", "))
-	}
-
-	return nil
-}
-
 func ValidateTemporality(temporality string) error {
-	if !slices.Contains(ValidTemporalities, temporality) {
-		return fmt.Errorf("export: invalid temporality '%s', must be one of: %s", temporality, strings.Join(ValidTemporalities, ", "))
+	if !slices.Contains(validTemporalities, temporality) {
+		return fmt.Errorf("export: invalid temporality '%s', must be one of: %s", temporality, strings.Join(validTemporalities, ", "))
 	}
 
 	return nil

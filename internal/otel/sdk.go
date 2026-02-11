@@ -2,6 +2,7 @@ package otel
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -60,15 +61,17 @@ func (s *SDK) ForceFlush(ctx context.Context) error {
 	if s.sdk == nil {
 		return nil
 	}
-	if provider, ok := s.sdk.MeterProvider().(interface{ ForceFlush(context.Context) error }); ok {
-		return provider.ForceFlush(ctx)
+
+	var err error
+	if p, ok := s.sdk.MeterProvider().(interface{ ForceFlush(context.Context) error }); ok {
+		err = errors.Join(err, p.ForceFlush(ctx))
 	}
-	if provider, ok := s.sdk.TracerProvider().(interface{ ForceFlush(context.Context) error }); ok {
-		return provider.ForceFlush(ctx)
+	if p, ok := s.sdk.TracerProvider().(interface{ ForceFlush(context.Context) error }); ok {
+		err = errors.Join(err, p.ForceFlush(ctx))
 	}
-	if provider, ok := s.sdk.LoggerProvider().(interface{ ForceFlush(context.Context) error }); ok {
-		return provider.ForceFlush(ctx)
+	if p, ok := s.sdk.LoggerProvider().(interface{ ForceFlush(context.Context) error }); ok {
+		err = errors.Join(err, p.ForceFlush(ctx))
 	}
 
-	return nil
+	return err
 }

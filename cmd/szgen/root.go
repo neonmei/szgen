@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/neonmei/szgen/internal/config"
 	"github.com/neonmei/szgen/internal/consts"
-	"github.com/neonmei/szgen/internal/otel"
+	"github.com/neonmei/szgen/internal/logging"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +17,7 @@ for testing, development, and demonstration purposes.`,
 		logLevel, _ := cmd.Flags().GetString("log-level")
 		logFormat, _ := cmd.Flags().GetString("log-format")
 
-		otel.StartLogger(logLevel, logFormat)
+		logging.StartLogger(logLevel, logFormat)
 	},
 }
 
@@ -47,7 +47,7 @@ func parseExecutorConfigFromCli(cmd *cobra.Command) (*config.ExecutorConfig, err
 		if ec.Params == nil {
 			ec.Params = make(map[string]any)
 		}
-		ec.Params["max_concurrency"] = maxConcurrency
+		ec.Params[consts.ParamMaxConcurrency] = maxConcurrency
 	}
 
 	if err := ec.Validate(); err != nil {

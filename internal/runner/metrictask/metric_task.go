@@ -26,7 +26,7 @@ func (im *metricTask[T]) Name() string {
 }
 
 func (im *metricTask[T]) Execute(ctx context.Context) error {
-	slog.Info("Iterator task running", "name", im.taskName, "interval", im.genInterval)
+	slog.Info("Iterator task running", "metric", im.taskName, "interval", im.genInterval)
 
 	ticker := time.NewTicker(im.genInterval)
 	defer ticker.Stop()
