@@ -9,3 +9,7 @@ dist
 
 # not yet
 flake.*
+
+coverage.lcov
+*.json
+docs

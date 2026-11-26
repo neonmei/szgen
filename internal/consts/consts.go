@@ -35,12 +35,14 @@ const (
 
 const (
 	DefaultConfigFile        = "szgen.yaml"
+	DefaultLogLevel          = "debug"
 	DefaultCount             = 1
 	DefaultDelta             = 1.0
 	DefaultExecutorStrategy  = ExecutorStrategySerial
 	DefaultExportTemporality = TemporalityDelta
 	DefaultGenerator         = GeneratorConstant
 	DefaultMeterName         = "szgen"
+	DefaultTracerName        = "szgen"
 	DefaultMetricKind        = MetricTypeCounter
 	DefaultMetricName        = "szgen.metric"
 	DefaultOTLPEndpoint      = "http://127.0.0.1:4317"
@@ -66,4 +68,7 @@ const (
 	SineParamIndexVShift = 2
 	SineParamIndexHShift = 3
 	SineFullCircle       = 2 * math.Pi
+
+	// SignalExitCodeBase follows the shell convention: a process killed by signal N exits with 128+N.
+	SignalExitCodeBase = 128
 )
