@@ -48,6 +48,17 @@ func WithMetricsConfig(metrics *MetricsConfig) Option {
 	}
 }
 
+// WithMetricTasks appends tasks to the metrics configuration, e.g: a task built from CLI flags.
+func WithMetricTasks(tasks ...MetricTask) Option {
+	return func(c *Config) error {
+		if c.Metrics == nil {
+			c.Metrics = &MetricsConfig{}
+		}
+		c.Metrics.Tasks = append(c.Metrics.Tasks, tasks...)
+		return nil
+	}
+}
+
 func WithOpenTelemetryConfig(otel map[string]any) Option {
 	return func(c *Config) error {
 		c.OpenTelemetry = otel
@@ -132,6 +143,11 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	return c.ValidateOpenTelemetry()
+}
+
+// ValidateOpenTelemetry checks that the OpenTelemetry section is a valid otelconf document.
+func (c *Config) ValidateOpenTelemetry() error {
 	if len(c.OpenTelemetry) == 0 {
 		return fmt.Errorf("no opentelemetry configuration found")
 	}

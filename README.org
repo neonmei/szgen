@@ -97,6 +97,21 @@ These can be configured with `--value` using a single or more optional values (a
 | sine      | Sine wave pattern              | ~amplitude,b,vertical_shift,horizontal_shift~             | =--value 50,10,100,0=            |
 | sequence  | Predefined sequence of numbers | Comma-separated values                                  | =--value 1,2,3,5,8=              |
 
+** Tracing a command (Linux only)
+
+=trace-exec= runs a command under ~ptrace~ and exports its process tree as a trace: one span per process, parented to the process that forked it, from start to exit. Threads do not get spans of their own.
+
+#+begin_src bash
+szgen trace-exec -- make -j4
+szgen --log-level debug trace-exec sh -c 'ls | wc -l'
+#+end_src
+
+- Span attributes follow the ~process.*~ semantic conventions: ~process.pid~, ~process.parent_pid~, ~process.executable.name~, ~process.executable.path~, ~process.command~, ~process.command_args~ and ~process.exit.code~. Spans of processes that fail or are killed have an error status.
+- szgen exits with the exit code of the command (~128+N~ when killed by signal ~N~).
+- Flags after the command name belong to the command; global flags go before =trace-exec=.
+- SIGINT/SIGTERM received by szgen are forwarded to the command. szgen waits for the whole process tree to exit, so spans are complete before they are flushed.
+- Spans are exported by the ~tracer_provider~ of the otelconf configuration (by default OTLP gRPC to ~127.0.0.1:4317~).
+
 ** Execution Modes
 
 *szgen* supports two execution strategies for running multiple metric generation tasks:

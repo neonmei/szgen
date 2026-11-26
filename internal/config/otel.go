@@ -44,6 +44,24 @@ func NewOTelConfig(serviceVersion string) map[string]any {
 				},
 			},
 		},
+		"tracer_provider": map[string]any{
+			"processors": []map[string]any{
+				{
+					"batch": map[string]any{
+						"schedule_delay": consts.DefaultOTelIntervalMillis,
+						"export_timeout": consts.DefaultOTelTimeoutMillis,
+						"exporter": map[string]any{
+							"otlp_grpc": map[string]any{
+								"endpoint":    consts.DefaultOTLPEndpoint,
+								"compression": "gzip",
+								"insecure":    consts.DefaultOTLPInsecure,
+								"timeout":     consts.DefaultOTelTimeoutMillis,
+							},
+						},
+					},
+				},
+			},
+		},
 		"resource": map[string]any{
 			"attributes": []map[string]any{
 				{
