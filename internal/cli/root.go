@@ -4,7 +4,6 @@ package cli
 import (
 	"github.com/neonmei/szgen/internal/app"
 	"github.com/neonmei/szgen/internal/cli/metricscmd"
-	"github.com/neonmei/szgen/internal/cli/traceexeccmd"
 	"github.com/neonmei/szgen/internal/consts"
 	"github.com/neonmei/szgen/internal/telemetry"
 	"github.com/spf13/cobra"
@@ -37,7 +36,8 @@ for testing, development, and demonstration purposes.`,
 	rootCmd.PersistentFlags().String("log-level", consts.DefaultLogLevel, "Log level (debug, info, warn, error)")
 	rootCmd.PersistentFlags().String("log-format", "text", "Log format (text, json)")
 
-	rootCmd.AddCommand(newRunCommand(opts), metricscmd.New(opts), traceexeccmd.New(opts))
+	rootCmd.AddCommand(newRunCommand(opts), metricscmd.New(opts))
+	rootCmd.AddCommand(platformCommands(opts)...)
 
 	return rootCmd
 }

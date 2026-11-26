@@ -1,7 +1,3 @@
-// Package traces builds tasks that emit traces.
-//
-// The exec task runs a command and records its process tree as an OpenTelemetry trace,
-// with one span per process from fork (or start) to exit.
 package traces
 
 import (
@@ -14,8 +10,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )
-
-var errExecUnsupported = errors.New("trace-exec is only supported on Linux")
 
 // ExitError reports a traced command that exited with a non-zero code (128+N when killed by signal N).
 type ExitError struct {
@@ -37,10 +31,6 @@ type execTask struct {
 
 // New creates a task that runs argv and traces it and all its descendant processes.
 func NewExecTask(argv []string) (runner.Task, error) {
-	if !execSupported {
-		return nil, errExecUnsupported
-	}
-
 	if len(argv) == 0 {
 		return nil, errors.New("no command provided")
 	}

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"runtime"
 	"testing"
 
 	"github.com/neonmei/szgen/internal/consts"
@@ -59,11 +60,23 @@ func TestNewRootCommand(t *testing.T) {
 
 	t.Run("commands", func(t *testing.T) {
 		cmd := NewRootCommand("test")
-		for _, name := range []string{"run", "r", "metrics", "m", "trace-exec"} {
+		for _, name := range []string{"run", "r", "metrics", "m"} {
 			found, _, err := cmd.Find([]string{name})
 			require.NoError(t, err, name)
 			assert.NotEqual(t, cmd, found, name)
 		}
+	})
+
+	t.Run("trace-exec only exists on linux", func(t *testing.T) {
+		if runtime.GOOS == "linux" {
+			found, _, err := NewRootCommand("test").Find([]string{"trace-exec"})
+			require.NoError(t, err)
+			assert.Equal(t, "trace-exec", found.Name())
+			return
+		}
+
+		_, err := execute(t, "trace-exec", "true")
+		assert.EqualError(t, err, `unknown command "trace-exec" for "szgen"`)
 	})
 
 	t.Run("run requires a config file", func(t *testing.T) {

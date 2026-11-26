@@ -16,8 +16,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const execSupported = true
-
 // ptraceOptions follow every new task and stop on exec. EXITKILL kills the tracees if szgen dies.
 const ptraceOptions = unix.PTRACE_O_EXITKILL |
 	unix.PTRACE_O_TRACEFORK |

@@ -1,4 +1,3 @@
-// Package traceexeccmd implements the `szgen trace-exec` command.
 package traceexeccmd
 
 import (
@@ -11,7 +10,7 @@ import (
 func New(opts *app.Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "trace-exec [flags] [--] <command> [args...]",
-		Short: "Execute a command and trace its process tree (Linux only)",
+		Short: "Execute a command and trace its process tree",
 		Long: `Execute a command and trace it and all its descendant processes using ptrace.
 Each process becomes a span, parented to the span of the process that forked it, from its start
 to its exit, with its pid, executable, command line and exit code as attributes.
