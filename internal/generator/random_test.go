@@ -26,14 +26,35 @@ func TestRandomGenerator(t *testing.T) {
 			max:      100,
 		},
 		{
-			name:     "single value (min only)",
-			valueStr: "10", // min=10, max=0 (default) -> error: min >= max
+			name:     "single value is the range from zero",
+			valueStr: "10", // bounds 10 and 0 (default) -> [0, 10]
 			count:    50,
+			min:      0,
+			max:      10,
+		},
+		{
+			name:     "single negative value",
+			valueStr: "-10", // bounds -10 and 0 (default) -> [-10, 0]
+			count:    50,
+			min:      -10,
+			max:      0,
+		},
+		{
+			name:     "reversed bounds",
+			valueStr: "100,50", // max,min -> [50, 100]
+			count:    100,
+			min:      50,
+			max:      100,
+		},
+		{
+			name:     "equal bounds error",
+			valueStr: "5,5",
+			count:    10,
 			wantErr:  true,
 		},
 		{
-			name:     "min >= max error",
-			valueStr: "100,50", // min=100, max=50 -> error
+			name:     "zero error",
+			valueStr: "0",
 			count:    10,
 			wantErr:  true,
 		},

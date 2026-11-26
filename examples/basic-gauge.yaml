@@ -9,7 +9,7 @@ metrics:
     unit: "1"
     rate: "10s"
     count: 30
-    value: "0.15-0.85"
+    value: "0.35,30,0.5" # amplitude,period,vertical_shift: oscillates between 0.15 and 0.85
     generator: "sine"
     attributes:
       cpu: "cpu0"

@@ -35,9 +35,9 @@ func NewOTelConfig(serviceVersion string) map[string]any {
 					"stream": map[string]any{
 						"aggregation": map[string]any{
 							"base2_exponential_bucket_histogram": map[string]any{
-								"max_size":   consts.DefaultOTelMaxSize,
-								"max_scale":  consts.DefaultOTelMaxScale,
-								"no_min_max": false,
+								"max_size":       consts.DefaultOTelMaxSize,
+								"max_scale":      consts.DefaultOTelMaxScale,
+								"record_min_max": true,
 							},
 						},
 					},
@@ -59,4 +59,29 @@ func NewOTelConfig(serviceVersion string) map[string]any {
 			},
 		},
 	}
+}
+
+// MergeOTelConfig deep merges src into dst and returns dst. Nested maps are merged recursively,
+// any other value from src (including lists) replaces the one in dst, and null values in src are ignored.
+func MergeOTelConfig(dst, src map[string]any) map[string]any {
+	if dst == nil {
+		dst = make(map[string]any, len(src))
+	}
+
+	for key, srcVal := range src {
+		if srcVal == nil {
+			continue
+		}
+
+		srcMap, srcIsMap := srcVal.(map[string]any)
+		dstMap, dstIsMap := dst[key].(map[string]any)
+		if srcIsMap && dstIsMap {
+			dst[key] = MergeOTelConfig(dstMap, srcMap)
+			continue
+		}
+
+		dst[key] = srcVal
+	}
+
+	return dst
 }

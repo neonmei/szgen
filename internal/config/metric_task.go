@@ -59,8 +59,8 @@ func (mc *MetricTask) Validate() error {
 		return fmt.Errorf("metric %q: %w", mc.Name, err)
 	}
 
-	if mc.Rate == 0 {
-		return fmt.Errorf("metric %q: empty rate", mc.Name)
+	if mc.Rate <= 0 {
+		return fmt.Errorf("metric %q: rate must be positive, got %s", mc.Name, mc.Rate)
 	}
 
 	return nil

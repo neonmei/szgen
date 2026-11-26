@@ -84,10 +84,11 @@ func WithOtelConfigFile() Option {
 				return fmt.Errorf("failed to read otelconf file %s: %w", userOtelConfig, err)
 			}
 
-			// We unmarshal into c.OpenTelemetry, effectively merging/overwriting
-			if err := yaml.Unmarshal(data, c.OpenTelemetry); err != nil {
+			var userCfg map[string]any
+			if err := yaml.Unmarshal(data, &userCfg); err != nil {
 				return fmt.Errorf("failed to unmarshal otelconf file %s: %w", userOtelConfig, err)
 			}
+			c.OpenTelemetry = MergeOTelConfig(c.OpenTelemetry, userCfg)
 		}
 		return nil
 	}
@@ -105,15 +106,19 @@ func WithSzgenConfigFile(path string) Option {
 			return fmt.Errorf("failed to read szgen config file %s: %w", path, err)
 		}
 
+		// Decode the opentelemetry section on its own so it can be deep merged into the current one.
+		base := c.OpenTelemetry
+		c.OpenTelemetry = nil
 		if err := yaml.Unmarshal(data, c); err != nil {
 			return fmt.Errorf("failed to unmarshal szgen config file %s: %w", path, err)
 		}
+		c.OpenTelemetry = MergeOTelConfig(base, c.OpenTelemetry)
 		return nil
 	}
 }
 
 func (c *Config) Validate() error {
-	if len(c.Metrics.Tasks) == 0 {
+	if c.Metrics == nil || len(c.Metrics.Tasks) == 0 {
 		return fmt.Errorf("no metrics defined in configuration")
 	}
 

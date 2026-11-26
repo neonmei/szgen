@@ -54,7 +54,28 @@ func TestSerialExecutor_Execute(t *testing.T) {
 			name:  "empty tasks",
 			tasks: []runner.Task{},
 		},
+		{
+			name: "cancelled task stops execution gracefully",
+			tasks: []runner.Task{
+				&mocks.MockTask{NameVal: "task1", ExecuteErr: context.Canceled},
+				&mocks.MockTask{NameVal: "task2"},
+			},
+			verify: func(t *testing.T, tasks []runner.Task) {
+				assert.Equal(t, 1, tasks[0].(*mocks.MockTask).ExecuteCalled)
+				assert.Equal(t, 0, tasks[1].(*mocks.MockTask).ExecuteCalled, "task2 should not be executed")
+			},
+		},
 	}
+
+	t.Run("cancelled context skips remaining tasks", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		task := &mocks.MockTask{NameVal: "task1"}
+		err := NewSerial().Execute(ctx, []runner.Task{task})
+		require.NoError(t, err)
+		assert.Equal(t, 0, task.ExecuteCalled)
+	})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

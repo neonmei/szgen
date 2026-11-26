@@ -48,10 +48,6 @@ func ValidateInstrumentKind(instrumentKind string) error {
 }
 
 func ValidateGenerator(name string) error {
-	if name == "" {
-		return nil
-	}
-
 	if !slices.Contains(validGenerators, name) {
 		return fmt.Errorf("invalid generator '%s', must be one of: %s", name, strings.Join(validGenerators, ", "))
 	}

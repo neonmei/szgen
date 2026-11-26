@@ -2,6 +2,7 @@ package executors
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -12,10 +13,15 @@ type serialExecutor struct{}
 
 func (e *serialExecutor) Execute(ctx context.Context, tasks []runner.Task) error {
 	for i, task := range tasks {
-		if ctx.Err() != nil {
-			return ctx.Err()
+		err := ctx.Err()
+		if err == nil {
+			err = task.Execute(ctx)
 		}
-		if err := task.Execute(ctx); err != nil {
+		if errors.Is(err, context.Canceled) {
+			slog.Info("serial executor interrupted", "completed", i, "tasks", len(tasks))
+			return nil
+		}
+		if err != nil {
 			return fmt.Errorf("task %d aborted: %w", i+1, err)
 		}
 	}

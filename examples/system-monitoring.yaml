@@ -23,8 +23,8 @@ opentelemetry:
           aggregation:
             sum: {}
       - selector:
+          # otelconf v0.20 rejects instrument_type "gauge" (sync gauges are unsupported in view selectors)
           instrument_name: "system.*.usage"
-          instrument_type: "gauge"
         stream:
           aggregation:
             last_value: {}

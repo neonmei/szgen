@@ -2,14 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/neonmei/szgen/internal/config"
-	"github.com/neonmei/szgen/internal/consts"
-	"github.com/neonmei/szgen/internal/otel"
 	"github.com/neonmei/szgen/internal/runner"
-	"github.com/neonmei/szgen/internal/runner/executors"
 	"github.com/neonmei/szgen/internal/runner/metrictask"
 	"github.com/spf13/cobra"
 )
@@ -23,26 +21,21 @@ var runCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.PersistentFlags().String("config", "", "Configuration file path")
+	runCmd.Flags().String("config", "", "Configuration file path")
 	rootCmd.AddCommand(runCmd)
 }
 
 func loadConfig(cmd *cobra.Command) (*config.Config, error) {
 	configPath, _ := cmd.Flags().GetString("config")
 	if configPath == "" {
-		return nil, fmt.Errorf("no config file path provided")
+		return nil, errors.New("no config file path provided")
 	}
 
-	cfg, err := config.NewConfig(
+	return config.NewConfig(
 		config.WithDefaultConfig(version),
 		config.WithOtelConfigFile(),
 		config.WithSzgenConfigFile(configPath),
 	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load config: %w", err)
-	}
-
-	return cfg, nil
 }
 
 func runConfigFile(cmd *cobra.Command, _ []string) error {
@@ -50,6 +43,8 @@ func runConfigFile(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
+
+	applyExecutorFlags(cmd, &cfg.Executor)
 
 	if err := cfg.Validate(); err != nil {
 		return fmt.Errorf("invalid configuration: %w", err)
@@ -60,7 +55,8 @@ func runConfigFile(cmd *cobra.Command, _ []string) error {
 
 	tasks := make([]runner.Task, 0, len(cfg.Metrics.Tasks))
 	for i, metricCfg := range cfg.Metrics.Tasks {
-		slog.Info("Queued task",
+		slog.Info(
+			"Queued task",
 			"metric", metricCfg.Name,
 			"generator", metricCfg.Generator,
 			"kind", metricCfg.Kind,
@@ -75,35 +71,7 @@ func runConfigFile(cmd *cobra.Command, _ []string) error {
 		tasks = append(tasks, task)
 	}
 
-	sdk, err := otel.NewSDK(cfg)
-	if err != nil {
-		return fmt.Errorf("failed to create sdk: %w", err)
-	}
-
-	if err := sdk.Start(); err != nil {
-		return fmt.Errorf("failed to start sdk: %w", err)
-	}
-	defer func() { _ = sdk.Shutdown(ctx) }()
-
 	slog.Debug("Loaded configuration", "task_count", len(cfg.Metrics.Tasks))
 
-	exec, err := executors.New(cfg.Executor)
-	if err != nil {
-		return fmt.Errorf("failed to create executor: %w", err)
-	}
-
-	if err := exec.Execute(ctx, tasks); err != nil {
-		return err
-	}
-
-	// Force flush metrics before shutdown
-	slog.Info("Flushing metrics")
-	flushCtx, cancel := context.WithTimeout(context.Background(), consts.DefaultFlushTimeout)
-	defer cancel()
-
-	if err := sdk.ForceFlush(flushCtx); err != nil {
-		slog.Warn("Failed to flush metrics", "error", err)
-	}
-
-	return nil
+	return runTasks(ctx, cfg, tasks)
 }

@@ -62,7 +62,7 @@ func TestValidateGenerator(t *testing.T) {
 	}{
 		{consts.GeneratorConstant, false},
 		{consts.GeneratorRandom, false},
-		{"", false}, // Allowed empty
+		{"", true},
 		{"invalid", true},
 	}
 

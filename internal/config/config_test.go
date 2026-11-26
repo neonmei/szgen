@@ -131,6 +131,12 @@ func TestConfig_Validate(t *testing.T) {
 		assert.ErrorContains(t, err, "no metrics defined")
 	})
 
+	t.Run("nil metrics", func(t *testing.T) {
+		cfg := &Config{Metrics: nil}
+		err := cfg.Validate()
+		assert.ErrorContains(t, err, "no metrics defined")
+	})
+
 	t.Run("invalid executor", func(t *testing.T) {
 		cfg := &Config{
 			Metrics:  &MetricsConfig{Tasks: []MetricTask{{Name: "valid"}}},

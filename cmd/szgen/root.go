@@ -12,7 +12,8 @@ var rootCmd = &cobra.Command{
 	Short: "OpenTelemetry Data Generator CLI",
 	Long: `szgen is a command-line tool for generating synthetic OpenTelemetry data
 for testing, development, and demonstration purposes.`,
-	SilenceUsage: true,
+	SilenceUsage:  true,
+	SilenceErrors: true, // main prints the returned error
 	PersistentPreRun: func(cmd *cobra.Command, _ []string) {
 		logLevel, _ := cmd.Flags().GetString("log-level")
 		logFormat, _ := cmd.Flags().GetString("log-format")
@@ -32,27 +33,17 @@ func init() {
 	rootCmd.PersistentFlags().String("log-format", "text", "Log format (text, json)")
 }
 
-func parseExecutorConfigFromCli(cmd *cobra.Command) (*config.ExecutorConfig, error) {
-	strategy, _ := cmd.Flags().GetString("executor")
-	maxConcurrency, _ := cmd.Flags().GetInt("max-concurrency")
-
-	// Create a new config to ensure defaults
-	ec := config.NewExecutorConfig()
-
-	if strategy != "" {
-		ec.Strategy = strategy
+// applyExecutorFlags overrides the executor configuration with flags explicitly set on the command line.
+func applyExecutorFlags(cmd *cobra.Command, ec *config.ExecutorConfig) {
+	if cmd.Flags().Changed("executor") {
+		ec.Strategy, _ = cmd.Flags().GetString("executor")
 	}
 
-	if maxConcurrency > 0 {
+	if cmd.Flags().Changed("max-concurrency") {
+		maxConcurrency, _ := cmd.Flags().GetInt("max-concurrency")
 		if ec.Params == nil {
 			ec.Params = make(map[string]any)
 		}
 		ec.Params[consts.ParamMaxConcurrency] = maxConcurrency
 	}
-
-	if err := ec.Validate(); err != nil {
-		return nil, err
-	}
-
-	return &ec, nil
 }

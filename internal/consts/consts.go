@@ -37,7 +37,6 @@ const (
 	DefaultConfigFile        = "szgen.yaml"
 	DefaultCount             = 1
 	DefaultDelta             = 1.0
-	DefaultDescription       = "Metric generated with szgen"
 	DefaultExecutorStrategy  = ExecutorStrategySerial
 	DefaultExportTemporality = TemporalityDelta
 	DefaultGenerator         = GeneratorConstant

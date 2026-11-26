@@ -77,4 +77,4 @@ example-counter:
 # Run example with config file
 example-config-run:
     just build
-    ./bin/szgen run --config examples/example-config.yaml
+    ./bin/szgen run --config examples/basic-counter.yaml

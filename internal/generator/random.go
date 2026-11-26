@@ -19,8 +19,13 @@ func newRandomGenerator[T int64 | float64](ctx context.Context, valueStr string,
 		maxVal = values[1]
 	}
 
-	if minVal >= maxVal {
-		return nil, fmt.Errorf("min value %v must be less than max value %v", minVal, maxVal)
+	// Bounds are accepted in any order, so a single value v means the range between 0 and v.
+	if minVal > maxVal {
+		minVal, maxVal = maxVal, minVal
+	}
+
+	if minVal == maxVal {
+		return nil, fmt.Errorf("random range bounds must differ, got %v and %v", minVal, maxVal)
 	}
 
 	return func(yield func(T) bool) {

@@ -92,7 +92,7 @@ metrics:
       unit: "By"
       rate: "5s"
       count: 60
-      value: 67108864.0
+      value: "33554432,20,67108864"
       generator: "sine"
       attributes:
         component: "cache"

@@ -117,6 +117,27 @@ func TestMetricTask_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "negative rate",
+			task: MetricTask{
+				Name:      "valid.metric",
+				Kind:      consts.MetricTypeCounter,
+				Type:      consts.ValueTypeFloat64,
+				Generator: consts.GeneratorConstant,
+				Rate:      -time.Second,
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty generator",
+			task: MetricTask{
+				Name: "valid.metric",
+				Kind: consts.MetricTypeCounter,
+				Type: consts.ValueTypeFloat64,
+				Rate: time.Second,
+			},
+			wantErr: true,
+		},
+		{
 			name: "empty rate",
 			task: MetricTask{
 				Name:      "valid.metric",

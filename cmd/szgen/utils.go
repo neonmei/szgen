@@ -2,14 +2,54 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/neonmei/szgen/internal/config"
+	"github.com/neonmei/szgen/internal/consts"
+	"github.com/neonmei/szgen/internal/otel"
+	"github.com/neonmei/szgen/internal/runner"
+	"github.com/neonmei/szgen/internal/runner/executors"
 	"github.com/spf13/cobra"
 )
+
+// runTasks starts the OpenTelemetry SDK, executes tasks and flushes pending telemetry before shutting down.
+func runTasks(ctx context.Context, cfg *config.Config, tasks []runner.Task) error {
+	exec, err := executors.New(cfg.Executor)
+	if err != nil {
+		return fmt.Errorf("failed to create executor: %w", err)
+	}
+
+	sdk, err := otel.NewSDK(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to create sdk: %w", err)
+	}
+
+	if err := sdk.Start(); err != nil {
+		return fmt.Errorf("failed to start sdk: %w", err)
+	}
+	defer func() {
+		// ctx may already be cancelled by a signal, so shutdown gets its own deadline.
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), consts.DefaultFlushTimeout)
+		defer cancel()
+		_ = sdk.Shutdown(shutdownCtx)
+	}()
+
+	execErr := exec.Execute(ctx, tasks)
+
+	slog.Info("Flushing metrics")
+	flushCtx, cancel := context.WithTimeout(context.Background(), consts.DefaultFlushTimeout)
+	defer cancel()
+
+	if err := sdk.ForceFlush(flushCtx); err != nil {
+		slog.Warn("Failed to flush metrics", "error", err)
+	}
+
+	return execErr
+}
 
 func buildMetricConfig(cmd *cobra.Command, metricType string) (*config.MetricTask, error) {
 	options := []config.MetricTaskOption{
@@ -63,7 +103,8 @@ func buildMetricConfig(cmd *cobra.Command, metricType string) (*config.MetricTas
 		return nil, err
 	}
 
-	slog.Debug("loaded config",
+	slog.Debug(
+		"loaded config",
 		"metric", mc.Name,
 		"kind", mc.Kind,
 		"type", mc.Type,
